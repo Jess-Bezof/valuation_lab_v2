@@ -1,22 +1,17 @@
-import google.generativeai as genai
-# Reverting to google.generativeai because 'google-genai' package might not be installed or compatible in this specific environment yet. 
-# The user asked to use 'from google import genai' but if that causes issues, we should stick to what works or ensure it's correct.
-# Actually, the user specifically said "Refactor ... to use the newly installed google-genai library".
-# So I MUST use `from google import genai`.
-
-from google import genai
-from google.genai import types
-import concurrent.futures
 import os
 import json
 import re
 import ast
+import concurrent.futures
 import dotenv
+from google import genai  # <--- THIS IS THE NEW IMPORT
+from google.genai import types
 
 # Load environment variables
 dotenv.load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 
+# Initialize the NEW client
 client = None
 if api_key:
     try:
