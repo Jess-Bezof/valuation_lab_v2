@@ -8,3 +8,13 @@
     color: #e2e8f0;
   }
 }
+
+/* Remove the Trae Solo branding badge permanently */
+#trae-badge-plugin, 
+.trae-badge,
+[id*="trae-badge"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
