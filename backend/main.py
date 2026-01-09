@@ -10,6 +10,7 @@ import requests
 import json
 import pandas as pd
 from datetime import datetime, timedelta
+from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables
 load_dotenv()
@@ -350,10 +351,14 @@ def get_stock_news(symbol: str, history_data: list = None):
             
     return markers
 
-# CORS and Endpoints
+# Get the allowed origins from the environment variable
+# We split by comma so you can provide multiple URLs
+raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
+origins = [origin.strip() for origin in raw_origins.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
