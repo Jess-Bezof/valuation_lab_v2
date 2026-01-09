@@ -1,0 +1,1629 @@
+{
+    "NVDA_max": [
+        {
+            "time": "2025-02-21",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        },
+        {
+            "time": "2025-01-23",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        },
+        {
+            "time": "2024-05-31",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        },
+        {
+            "time": "2024-02-28",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        },
+        {
+            "time": "2025-05-01",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        }
+    ],
+    "AAPL_max": [
+        {
+            "time": "2025-08-01",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "A Seeking Alpha article suggested Apple might face a significant decline akin to Nokia or Blackberry, causing negative investor sentiment and a sell-off."
+        },
+        {
+            "time": "2025-04-23",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Broad market sentiment anticipates a volatile week for Big Tech earnings and economic data, creating uncertainty around AAPL's valuation leading to a negative correction."
+        },
+        {
+            "time": "2024-08-09",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Given the lack of specific Apple news in the provided headlines, the 8.52% price move was likely due to overall positive market sentiment or a broad sector rally affecting technology stocks."
+        },
+        {
+            "time": "2024-06-28",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "The provided news articles, published after the date in question, suggest a positive market sentiment driven by tech gains and bullish Fed comments, which could have contributed to the AAPL price increase."
+        },
+        {
+            "time": "2024-02-22",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Given the lack of specific Apple news in the days leading up to the significant price drop, the reversal was likely caused by negative overall market sentiment or sector-specific concerns impacting technology stocks."
+        }
+    ],
+    "LULU_max": [
+        {
+            "time": "2025-09-04",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "The significant price drop in Lululemon stock on September 5th, 2025, was likely triggered by concerns highlighted in the \"Tariffs Are a Big Problem for Lululemon Stock\" article regarding the potential negative impact of tariffs on the company's profitability."
+        },
+        {
+            "time": "2025-07-25",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Jefferies reduced its target price for LULU due to concerns about the company's global expansion, likely triggering the significant price drop."
+        },
+        {
+            "time": "2025-06-04",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Lululemon's stock price decreased significantly as forecasts indicated consumer caution, impacting investor confidence."
+        },
+        {
+            "time": "2024-05-10",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Despite BTIG resuming coverage with a positive outlook, the stock price declined significantly, suggesting the positive sentiment was insufficient to counter existing negative pressures or broader market factors affecting Lululemon on that day."
+        },
+        {
+            "time": "2024-03-28",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Despite the significant price drop, a Lululemon director's purchase of shares suggests confidence in the company's long-term prospects, which, paradoxically, can sometimes precede further declines as investors interpret it as an attempt to stabilize the stock."
+        }
+    ],
+    "ALB_max": [
+        {
+            "time": "2025-06-30",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Jim Cramer's commentary on Albemarle's stock performance, specifically his uncertainty about its origin, likely contributed to market speculation and a significant price movement."
+        },
+        {
+            "time": "2025-03-27",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "While the article was published after the price drop, it likely reflects the market's reaction to significant option activity that could have anticipated or exacerbated the negative price movement on March 28th, suggesting increased bearish sentiment or hedging activity."
+        },
+        {
+            "time": "2024-12-17",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Albemarle experienced a significant drop, outpacing the general market decline, suggesting company-specific factors contributed to the negative price movement."
+        },
+        {
+            "time": "2024-08-16",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "The significant price drop in ALB stock on August 17, 2024, appears to be a continuation of negative sentiment triggered by declining lithium prices, as highlighted in the Seeking Alpha article published on August 14, 2024, which likely put downward pressure on the stock over the subsequent days."
+        },
+        {
+            "time": "2024-06-12",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Albemarle's stock price declined for the seventh consecutive session, indicating sustained negative investor sentiment."
+        }
+    ],
+    "META_max": [
+        {
+            "time": "2024-04-11",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Given the absence of specific news regarding Meta (META) within the provided headlines and the limited timeframe, the -16.3% price move was likely caused by broader market sentiment or technical factors impacting the technology sector during that period."
+        },
+        {
+            "time": "2024-07-31",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Meta's stock price likely experienced a significant move due to its 2Q earnings announcement, which included a raised capital expenditure outlook alongside indications of advertising softness, creating uncertainty about future profitability."
+        },
+        {
+            "time": "2025-10-31",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "News articles published after the price reversal on 2025-10-31 indicate growing concerns about an AI stock bubble and comparisons to the 1929 Wall Street Crash, suggesting a negative market sentiment that could have triggered the sharp decline in META's stock price."
+        },
+        {
+            "time": "2025-04-30",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Meta's ambitious target of $1.4 trillion revenue from generative AI by 2035 likely fueled investor optimism and drove the stock price surge."
+        },
+        {
+            "time": "2024-02-06",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "No specific news regarding META was found in the provided headlines, suggesting the price increase was likely due to broader market sentiment or sector-wide trends."
+        }
+    ],
+    "SBUX_max": [
+        {
+            "time": "2025-04-02",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "A significant market downturn caused by tariffs negatively impacted SBUX, leading to a sell-off."
+        },
+        {
+            "time": "2025-01-17",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No specific news regarding SBUX was present during the period; therefore, the price move was likely due to broader market sentiment or sector-wide trends."
+        },
+        {
+            "time": "2025-02-28",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "A surge in options activity suggests increased volatility and uncertainty surrounding Starbucks' future performance, potentially leading to a significant price move."
+        },
+        {
+            "time": "2024-08-09",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "No specific news for SBUX was found in the provided headlines; the market sentiment appears positive due to anticipation of CPI data and a rally in US stocks."
+        },
+        {
+            "time": "2024-04-24",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "This article, published *after* the price drop, discusses positive China activity and margin expectations, suggesting the actual earnings release was likely worse than anticipated and drove the -13.34% move, making this article post-event analysis, not a pre-event warning."
+        }
+    ],
+    "MCD_max": [
+        {
+            "time": "2025-03-26",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "McDonald's launched a global marketing campaign featuring a Minecraft Movie Meal and Happy Meal, likely boosting sales and positive brand perception, leading to the stock price increase."
+        },
+        {
+            "time": "2024-10-23",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "The sale of a significant amount of stock by a high-ranking executive at McDonald's can sometimes be interpreted negatively by the market, suggesting a lack of confidence in the company's future performance, potentially contributing to a stock price decline."
+        },
+        {
+            "time": "2024-08-05",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "NONE"
+        },
+        {
+            "time": "2024-07-29",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Restaurant stocks, including McDonald's, experienced a drop due to industry data indicating a potentially slow recovery in earnings."
+        },
+        {
+            "time": "2024-04-04",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "NONE"
+        }
+    ],
+    "WEN_max": [
+        {
+            "time": "2025-11-11",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Analysts lowered their forecasts for Wendy's after the company's Q3 results, indicating a negative outlook on the company's future performance."
+        },
+        {
+            "time": "2025-08-08",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Jim Cramer's statement expressing a lack of confidence in Wendy's financial projections likely triggered negative sentiment, leading to a sell-off and the observed price decrease."
+        },
+        {
+            "time": "2025-07-23",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "The appointment of a new U.S. President, while potentially impacting future strategy, is unlikely to cause a -10.62% price move immediately; it suggests uncertainty or lack of confidence by investors in the new leadership."
+        }
+    ],
+    "NKE_max": [
+        {
+            "time": "2025-06-18",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "This article suggests the market is underestimating Nike's potential, implying a positive outlook that could drive the stock price up."
+        },
+        {
+            "time": "2025-03-21",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "A Seeking Alpha article published three days after the price reversal, but likely reflecting market sentiment leading up to the drop, suggested investors shouldn't expect a quick recovery for Nike due to underlying issues."
+        },
+        {
+            "time": "2024-09-16",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "BMO Capital maintains an \"Outperform\" rating on Nike, signaling positive sentiment and potentially contributing to the stock's stability and subsequent positive price movement."
+        },
+        {
+            "time": "2024-08-05",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Based on the limited news available, it's difficult to pinpoint a specific catalyst for the 10.42% price move. Given the lack of company-specific news or broader sector trends in this limited dataset, the price increase may have been due to a broader market rally or a technical rebound after a period of decline."
+        },
+        {
+            "time": "2024-06-21",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "A class action lawsuit filed on behalf of investors by the Portnoy Law Firm negatively impacted investor confidence, likely contributing to the significant price drop."
+        }
+    ],
+    "AMD_max": [
+        {
+            "time": "2025-10-01",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "There is no AMD-specific news within the relevant timeframe, suggesting the price move was likely due to broader market factors or technical trading."
+        },
+        {
+            "time": "2025-04-21",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Broad tech sector optimism, driven by positive sentiment around major players like Apple, Google, and Tesla, likely contributed to the price increase in AMD."
+        },
+        {
+            "time": "2025-03-25",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "There is no relevant news available about AMD in the 10 days leading up to the price drop; therefore, the move was likely due to general market sentiment."
+        },
+        {
+            "time": "2024-09-18",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "AMD's stock rose significantly on 2024-09-19 (after the announcement of an AI event, pointing to advancements and strategic focus in the artificial intelligence sector."
+        },
+        {
+            "time": "2024-07-15",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Given the provided news focuses on general market trends, including a warning from Goldman Sachs about a potentially weak summer for stocks and the S&P 500's worst week since April, the AMD price drop was likely influenced by a broader negative market sentiment affecting tech stocks."
+        }
+    ],
+    "INTC_max": [
+        {
+            "time": "2025-09-17",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "A major collaboration between Nvidia and Intel likely boosted investor confidence in Intel's future prospects, driving a significant price increase."
+        },
+        {
+            "time": "2025-08-07",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "An article suggesting Intel's problems stem from overbuilding rather than a cyclical downturn could negatively impact investor confidence, potentially triggering a sell-off."
+        },
+        {
+            "time": "2025-02-25",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "An article promoting Intel as a strong buy under $50 likely drove positive sentiment and increased buying pressure, contributing to the significant price increase."
+        },
+        {
+            "time": "2024-09-12",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Reports surfaced on September 16, 2024, that Intel lost a significant chip deal for the PlayStation 6 to its rival AMD, negatively impacting investor confidence and future revenue projections, potentially triggering the price drop observed between September 12th and 13th."
+        },
+        {
+            "time": "2024-08-01",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Intel's poor Q2 performance, as highlighted in the Seeking Alpha article, likely fueled the significant price drop, confirming and worsening existing negative trends."
+        }
+    ],
+    "PFE_max": [
+        {
+            "time": "2025-10-08",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "AstraZeneca agreeing to drug price cuts in the US, likely under pressure from the Trump administration, created negative sentiment for pharmaceutical companies, suggesting potential future price cut pressures for companies like Pfizer."
+        },
+        {
+            "time": "2025-09-25",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "An article suggesting Pfizer is well-positioned to handle potential drug import tariffs likely boosted investor confidence, contributing to the positive price movement."
+        },
+        {
+            "time": "2025-04-02",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No specific negative news about Pfizer in the days leading up to the price drop suggests broad market sentiment or sector-specific concerns may have driven the decline."
+        },
+        {
+            "time": "2024-11-05",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No specific news relating to Pfizer was found in the immediate lead-up to the price drop on November 6th; therefore, the price move was likely driven by broader market sentiment or sector-specific factors not captured in the provided headlines."
+        },
+        {
+            "time": "2023-12-22",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No specific news related to Pfizer (PFE) was found in the provided headlines for the period leading up to the price move, suggesting the 8.65% increase was likely due to broader market sentiment or technical factors."
+        }
+    ],
+    "MDLZ_max": [
+        {
+            "time": "2025-03-20",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Goldman Sachs suggesting Mondelez is undervalued likely drove positive investor sentiment and increased buying pressure, leading to the price increase."
+        },
+        {
+            "time": "2025-02-18",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "The MDLZ stock price moved significantly on 2025-02-19 following CEO Dirk Van De Put's presentation at the CAGNY conference, suggesting the presentation contained market-moving information."
+        },
+        {
+            "time": "2025-02-04",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "The 7.35% price increase on February 5th was likely driven by positive details revealed during the Q4 2024 earnings call, suggesting strong performance or optimistic future guidance that resonated with investors."
+        },
+        {
+            "time": "2024-10-23",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "An article suggesting Hershey is performing better than Mondelez during the Halloween season likely negatively impacted investor sentiment towards MDLZ, potentially contributing to the stock's decline."
+        },
+        {
+            "time": "2024-07-23",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Mondelez International's appointment of a new digital chief suggests a strategic focus on enhancing its digital presence, potentially driving future growth and efficiency, positively influencing investor sentiment."
+        }
+    ],
+    "MANU_max": [
+        {
+            "time": "2025-06-05",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Manchester United's stock price surged 14.7% on June 6, 2025, likely driven by positive investor reaction to the company's Q3 2025 financial results."
+        },
+        {
+            "time": "2024-04-15",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Given the lack of news directly related to Manchester United (MANU) in the provided headlines, the 10.34% price move from 2024-04-15 to 2024-04-16 was likely driven by broader market sentiment or technical factors rather than company-specific news."
+        },
+        {
+            "time": "2024-02-08",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Based on the provided headlines, no specific news about Manchester United (MANU) directly explains the -10.21% price move on February 9, 2024, suggesting the drop might have been influenced by broader market sentiment or factors not captured in the provided news snippets."
+        },
+        {
+            "time": "2025-11-10",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Given the lack of relevant news regarding Manchester United (MANU) during the specified period, the -10.46% price move on 2025-11-11 was likely due to overall market sentiment or sector-specific factors not captured in the provided news snippets."
+        },
+        {
+            "time": "2024-02-27",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "There is no specific news about Manchester United (MANU) in the provided headlines that directly explains the -18.86% price move; therefore, a broader market sentiment analysis is needed to understand the cause of the price change."
+        }
+    ],
+    "JNJ_max": [
+        {
+            "time": "2025-11-05",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "The absence of specific news suggests the 6.77% price move was likely influenced by broader market sentiment regarding defensive stocks during a period of perceived market instability."
+        },
+        {
+            "time": "2025-07-15",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "There is no specific JNJ news in the provided headlines, indicating the price move was likely influenced by broader market sentiment or sector trends."
+        },
+        {
+            "time": "2024-08-19",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Johnson & Johnson's stock price increased due to positive market sentiment and continued gains over eight consecutive sessions leading up to the specified date, suggesting strong investor confidence."
+        },
+        {
+            "time": "2024-04-02",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "The acquisition of Shockwave Medical for $13.1 billion likely caused investor concern regarding the financial burden and potential integration challenges, leading to the negative price movement."
+        },
+        {
+            "time": "2024-07-08",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Given the absence of JNJ-specific news in the provided headlines, the 6.65% price move was likely due to broader market sentiment or sector-specific trends influencing investor behavior."
+        }
+    ],
+    "AMZN_max": [
+        {
+            "time": "2024-11-22",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Given the absence of Amazon-specific news in the provided headlines, the 12.05% price move was likely influenced by overall market sentiment, potentially a positive trend reflected in the DJIA and S&P500 reaching new records, suggesting a broader bullish market environment."
+        },
+        {
+            "time": "2025-02-26",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Given the absence of negative company-specific news, a broad market downturn or negative sector-specific news likely triggered the significant price decrease in AMZN on February 27, 2025."
+        },
+        {
+            "time": "2025-10-17",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "A detailed analysis of Amazon's P/E ratio likely influenced investor sentiment and trading decisions, contributing to the significant price movement."
+        },
+        {
+            "time": "2024-07-31",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Given the absence of Amazon-specific news in the provided headlines and dates, the -11.42% price move was likely influenced by broader market sentiment regarding large tech stocks, possibly triggered by news related to Apple and Warren Buffett's investment decisions."
+        },
+        {
+            "time": "2025-11-11",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Based on the limited news available in the specified timeframe, there is no direct AMZN-related news to explain the -11.09% price move; therefore, the drop might be attributable to broader market sentiment or factors not captured in the provided headlines."
+        }
+    ],
+    "WBD_max": [
+        {
+            "time": "2024-11-06",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No company-specific news found; the price move was likely due to broader market sentiment or technical factors."
+        },
+        {
+            "time": "2025-11-24",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Comcast's bid for Warner Bros. Discovery likely drove up WBD's stock price due to speculation about a potential acquisition."
+        },
+        {
+            "time": "2025-07-01",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No specific news related to WBD was found in the provided headlines, suggesting the price move may be attributable to broader market sentiment or technical factors."
+        },
+        {
+            "time": "2025-09-04",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "A report surfaced on September 3rd indicating that Warner Bros Discovery is considering selling a stake in its studio and streaming service, which likely caused a significant market reaction culminating on September 5th."
+        },
+        {
+            "time": "2025-10-17",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Rumors of a potential sale of Warner Bros, with Netflix and Comcast as potential buyers, drove significant investor interest and speculation, resulting in a substantial increase in the stock price."
+        }
+    ],
+    "GS_max": [
+        {
+            "time": "2024-11-04",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Goldman Sachs shares experienced a positive move, indicating investor confidence and potential positive catalysts affecting the stock's valuation."
+        },
+        {
+            "time": "2025-05-06",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "The publication of an article suggesting Goldman Sachs is the 'Best Dow Stock' likely contributed to increased investor interest and positive sentiment, driving the price up."
+        },
+        {
+            "time": "2025-06-17",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "The decision by Goldman Sachs to liquidate two ETFs by July 2025 may have negatively impacted investor sentiment, contributing to the significant price move as investors reacted to the change in GS's asset management strategy and potential implications for future performance."
+        },
+        {
+            "time": "2025-04-16",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "The article highlights Goldman Sachs' sustainable dividend payout ratio, which suggests financial stability and could attract income-seeking investors, leading to increased demand and a price increase."
+        },
+        {
+            "time": "2025-03-25",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "There is no immediately preceding negative news about Goldman Sachs in the provided headlines; therefore, the significant price drop on 2025-03-26 was likely due to broader market sentiment or other factors not reflected in this specific news sample."
+        }
+    ],
+    "QCOM_max": [
+        {
+            "time": "2025-10-17",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "The article likely highlighted positive aspects of Qualcomm, increasing investor interest and contributing to the price surge."
+        },
+        {
+            "time": "2025-05-07",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Qualcomm being highlighted as one of the best income stocks likely increased investor confidence and demand, contributing to the price increase."
+        },
+        {
+            "time": "2024-05-07",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No specific news related to QCOM was found in the provided headlines, suggesting the price movement may be attributable to broader market sentiment or sector trends."
+        },
+        {
+            "time": "2024-07-16",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "This article discusses factors making Qualcomm a trending stock, potentially influencing investor sentiment and stock price due to increased visibility and discussion around the company."
+        },
+        {
+            "time": "2025-03-25",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No specific negative news regarding Qualcomm in the days leading up to the price drop suggests the decline may be attributable to broader market sentiment or sector-specific concerns not reflected in these headlines."
+        }
+    ],
+    "CVX_max": [
+        {
+            "time": "2025-03-12",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        },
+        {
+            "time": "2025-05-28",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        },
+        {
+            "time": "2024-09-26",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        },
+        {
+            "time": "2025-04-01",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        },
+        {
+            "time": "2025-12-18",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        }
+    ],
+    "ORCL_max": [
+        {
+            "time": "2025-04-23",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "There is no specific news for ORCL in the provided headlines; therefore, the price movement may be attributable to broader market sentiment or technical factors."
+        },
+        {
+            "time": "2025-11-19",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Given the lack of specific news about Oracle (ORCL) in the 10 days leading up to the price drop, the negative price movement was likely due to negative market sentiment or sector-specific concerns affecting the broader technology industry."
+        },
+        {
+            "time": "2024-08-29",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "There is no specific ORCL news in the provided headlines, indicating that the 16.41% price move was likely due to broader market sentiment or technical factors."
+        },
+        {
+            "time": "2025-06-04",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Given the lack of specific news about ORCL and only general market articles, the price movement was likely driven by overall market sentiment or technical factors rather than company-specific events."
+        },
+        {
+            "time": "2025-09-04",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Anticipation of higher Q1 earnings, driven by positive analyst revisions, likely spurred investor confidence and buying pressure in Oracle stock."
+        }
+    ],
+    "BX_max": [
+        {
+            "time": "2025-07-07",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Blackstone's acquisition of Vista's stake in Cvent for $1.3 billion signals further investment and expansion in the events technology sector, boosting investor confidence and potentially driving the stock price increase."
+        },
+        {
+            "time": "2025-02-28",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "An unfavorable P/E ratio assessment on 2025-02-28 may have triggered investor concern, leading to a sell-off and the observed price decrease."
+        },
+        {
+            "time": "2025-04-30",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Blackstone's launch of a new private multi-asset credit and income fund, BMACX, likely boosted investor confidence and triggered the price surge as it signals expansion and diversification of their investment offerings."
+        },
+        {
+            "time": "2024-10-15",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "The Q3 2024 earnings call transcript provided insights into Blackstone's performance, likely revealing positive results or future guidance that drove investor optimism and a significant price increase."
+        },
+        {
+            "time": "2025-09-29",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Given the lack of specific negative news regarding Blackstone (BX) in the 10 days leading up to the price drop, and no single 'flash event' on 2025-09-29, the -14.47% price move was likely caused by broad market sentiment or sector-specific concerns negatively impacting financial stocks, possibly related to broader economic concerns or interest rate expectations."
+        }
+    ],
+    "DIS_max": [
+        {
+            "time": "2025-05-01",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Disney's stock price surged after the company reported strong financial performance, leading investors to believe it was undervalued despite positive results."
+        },
+        {
+            "time": "2024-11-19",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "The significant loss reported by Star India, a subsidiary of Disney, negatively impacted investor sentiment and likely contributed to the stock price decrease."
+        },
+        {
+            "time": "2025-03-25",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "The FCC investigation into Disney and ABC's DEI initiatives triggered a significant sell-off due to concerns about potential regulatory penalties and reputational damage."
+        },
+        {
+            "time": "2024-01-26",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Given the lack of specific news about Disney (DIS) in the days leading up to January 26, 2024, the 14% price move was likely due to broader market sentiment or sector-specific trends affecting the media and entertainment industry."
+        },
+        {
+            "time": "2025-11-26",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "This news article discussing Walt Disney's stock performance compared to other communication services stocks, released on the day of the price reversal, suggests increased investor awareness and potential reassessment of DIS valuation relative to its peers, which could contribute to the significant price move."
+        }
+    ],
+    "XOM_max": [
+        {
+            "time": "2025-06-24",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Exxon Mobil's increased oil production at the Cepu Block in Indonesia likely boosted investor confidence, contributing to the significant price increase."
+        },
+        {
+            "time": "2025-03-13",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "The article suggests Exxon Mobil is a profitable value stock, likely driving positive investor sentiment and contributing to the price increase."
+        },
+        {
+            "time": "2024-09-26",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "The U.S. government's purchase of 6 million barrels of oil for the Strategic Petroleum Reserve signals increased demand and potentially higher oil prices, benefiting companies like Exxon Mobil."
+        },
+        {
+            "time": "2025-04-01",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "There is no negative company-specific news leading up to the price drop; therefore, it is likely a negative shift in overall market sentiment or sector-wide downturn drove the -13.48% price move."
+        },
+        {
+            "time": "2024-11-29",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Exxon's appointment of a new Upstream president, despite having low relevance and the news occurring after the date, may have sparked fears about the company's future direction and profitability in its core oil and gas business, potentially influencing investor sentiment negatively."
+        }
+    ],
+    "GOOGL_max": [
+        {
+            "time": "2025-10-21",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No specific news related to GOOGL was found, suggesting the 13.68% price move was likely due to broader market factors or technical trading patterns."
+        },
+        {
+            "time": "2025-06-26",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "JMP Securities upgraded Alphabet Inc. to Market Outperform, indicating a positive outlook on the company's future performance and likely driving investor confidence."
+        },
+        {
+            "time": "2025-08-27",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "A rating downgrade from a prominent source, suggesting Alphabet's growth may be slowing, triggered a significant sell-off and price decline."
+        },
+        {
+            "time": "2024-03-13",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No specific news related to GOOGL was found in the provided headlines; therefore, the price move was likely caused by broader market sentiment or technical factors."
+        },
+        {
+            "time": "2024-12-05",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "A positive analyst report highlighting Alphabet's strong position in the autonomous driving sector, coupled with hedge fund interest, likely spurred investor confidence and contributed to the stock's price increase."
+        }
+    ],
+    "UA_max": [
+        {
+            "time": "2025-04-02",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Under Armour stock declined significantly due to a recent tariff announcement negatively impacting the company's financial outlook."
+        },
+        {
+            "time": "2025-02-05",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Concerns about the impact of China tariffs on Under Armour likely contributed to a negative sentiment, potentially leading to a sell-off."
+        },
+        {
+            "time": "2025-12-17",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Under Armour's announcement of a loss, juxtaposed with Nike's strong earnings beat, likely triggered a negative investor reaction and a sell-off of UA stock."
+        },
+        {
+            "time": "2024-08-12",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Under Armour's stock likely moved significantly due to a combination of factors from its earnings report, with the earnings beat suggesting positive performance but the decline in wholesale revenues potentially causing concern about future growth."
+        },
+        {
+            "time": "2025-08-07",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Analysts lowered their price targets for Under Armour following a disappointing Q1 earnings report, contributing to a negative outlook for the stock and a subsequent price decrease."
+        }
+    ],
+    "BRK-B_max": [
+        {
+            "time": "2024-12-05",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Warren Buffett's large cash position suggests a cautious outlook on the stock market, potentially signaling concerns about overvaluation or future economic downturn, contributing to negative sentiment towards Berkshire Hathaway."
+        },
+        {
+            "time": "2024-08-12",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "No specific news relating to BRK-B was published in the 10 days prior to the price move, suggesting that a broad market rally or sector-specific news may have influenced the price increase."
+        },
+        {
+            "time": "2024-11-08",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No specific news relating to BRK-B was found in the provided headlines; the price move was likely due to broader market sentiment or technical factors."
+        },
+        {
+            "time": "2025-04-21",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Berkshire Hathaway's significant 17% rise in Q1 likely fueled positive investor sentiment and drove increased buying pressure, contributing to the observed price increase."
+        },
+        {
+            "time": "2025-02-10",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "There is no significant news about BRK-B in the days leading up to February 10, 2025, so the price move was likely due to broad market factors or technical trading patterns."
+        }
+    ],
+    "RIG_max": [
+        {
+            "time": "2025-04-09",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Oil prices experienced volatility which likely impacted Transocean's stock price negatively."
+        },
+        {
+            "time": "2025-10-16",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Transocean announced early tender results and increased the size of its cash tender offer, potentially signaling confidence in its financial position and creating upward price pressure."
+        },
+        {
+            "time": "2024-03-22",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Transocean's stock price decreased as a result of a fall in energy prices."
+        },
+        {
+            "time": "2025-04-30",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "The release of the Q1 2025 earnings call transcript provided investors with detailed insights into the company's performance, strategic direction, and management's outlook, significantly influencing the stock price."
+        },
+        {
+            "time": "2024-02-29",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "The release of the Q4 2023 earnings call transcript on February 28th provided investors with detailed insights into Transocean's financial performance and future outlook, potentially driving significant trading activity and the subsequent price movement."
+        }
+    ],
+    "NFLX_max": [
+        {
+            "time": "2024-11-15",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "There is no specific news within the provided timeframe to explain the price movement, suggesting it may be due to broad market sentiment or technical factors."
+        },
+        {
+            "time": "2025-04-25",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Given the lack of specific Netflix news in the provided headlines, the 15.42% price move was likely due to broader market sentiment or technical factors."
+        },
+        {
+            "time": "2025-02-20",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "The absence of positive news and the presence of news indicating a more significant dip than the broader market suggests negative market sentiment contributed to the price decrease."
+        },
+        {
+            "time": "2024-08-08",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No specific news related to Netflix was found in the provided headlines, suggesting the price movement may have been due to broader market sentiment or technical factors."
+        },
+        {
+            "time": "2024-02-06",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Based on the limited news provided, there's no specific company news directly explaining the 13.34% price move; therefore, it's more likely attributed to broader market sentiment or sector-specific trends not captured in the provided headlines."
+        }
+    ],
+    "PG_max": [
+        {
+            "time": "2024-12-26",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        },
+        {
+            "time": "2025-08-06",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "A bullish article highlighting the investment potential of Procter & Gamble likely contributed to positive investor sentiment leading up to the price increase."
+        },
+        {
+            "time": "2025-04-03",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "The available news articles are all positive, suggesting the -6.04% price move was likely due to negative market sentiment or a broader market correction that disproportionately affected PG, despite positive analyst and expert opinions."
+        },
+        {
+            "time": "2024-11-12",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "An article highlighting the potential upside for Procter & Gamble's share price due to global disinflation and company productivity could have contributed to the 11.34% price move."
+        },
+        {
+            "time": "2025-02-21",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "The release of the Consumer Analyst Group of New York Conference transcript on February 21st provided detailed insights into Procter & Gamble's strategy and performance, likely influencing investor sentiment and trading activity leading to the price move."
+        }
+    ],
+    "MSFT_max": [
+        {
+            "time": "2025-04-21",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "The tech sector experienced a broad rally, likely influencing MSFT's positive price movement."
+        },
+        {
+            "time": "2025-05-01",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "DBS reaffirmed a buy rating for Microsoft with a $485 price target, citing the company's strong growth in AI and cloud computing, likely contributing to positive investor sentiment and the price increase."
+        },
+        {
+            "time": "2025-02-06",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "The article suggests that Microsoft could pose a risk to NVIDIA's success, potentially shifting investor sentiment away from NVIDIA and towards other players like Microsoft, contributing to a negative price move for MSFT."
+        },
+        {
+            "time": "2025-03-25",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Given the lack of company-specific news in the provided headlines for MSFT, and the positive tone of those headlines (gaming, AI, quantum computing), a likely explanation for a -7.42% price drop is a broader negative market sentiment correction or a profit-taking sell-off following a period of gains."
+        },
+        {
+            "time": "2024-06-07",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "The provided headlines focus on general market conditions, including AI rallies, inflation data, and Fed rate cut expectations, suggesting a positive market sentiment that could contribute to upward price movement across tech stocks, including MSFT."
+        }
+    ],
+    "FDX_max": [
+        {
+            "time": "2024-09-19",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "The news article discusses recent factors affecting FedEx shares, suggesting possible underlying issues contributing to the price drop."
+        },
+        {
+            "time": "2025-03-20",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Despite the headline suggesting a buying opportunity, the 'post-earnings correction' preceding the article's publication likely refers to negative initial market reaction to earnings, contributing to the stock decline."
+        },
+        {
+            "time": "2024-06-14",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "Anticipation of strong earnings growth reported by Wall Street analysts likely drove positive investor sentiment and the subsequent price increase."
+        },
+        {
+            "time": "2024-03-11",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Given the lack of specific, relevant news regarding FedEx (FDX) in the 10 days leading up to March 11, 2024, the 14.18% price move on March 11-12 was likely due to broader market sentiment or technical factors."
+        },
+        {
+            "time": "2023-12-28",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "While insider buying is generally seen as a positive sign, the timing of this purchase on December 29th, coinciding with a significant price drop, suggests it was likely a reaction to the market's negative assessment of FedEx and not a driver of the price decrease itself; it's possible the drop was driven by concerns not reflected in readily available news, or by broader economic anxieties dominating market sentiment at that time."
+        }
+    ],
+    "DG_max": [
+        {
+            "time": "2024-06-03",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Unusual options activity in Dollar General often precedes significant price movements, suggesting increased speculative interest and potential for volatility."
+        },
+        {
+            "time": "2025-06-10",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "The stock had already experienced a positive move prior to June 10th, suggesting some positive sentiment or recovery anticipation which could have fueled further buying on June 11th."
+        },
+        {
+            "time": "2025-12-03",
+            "text": "",
+            "label": "N",
+            "color": "#22c55e",
+            "shape": "circle",
+            "position": "belowBar",
+            "headline": "While the transcript was published after the price move, the earnings call on 2025-12-03 likely contained information that drove investor optimism about the company's performance and future outlook."
+        },
+        {
+            "time": "2024-08-27",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "An investor alert regarding an investigation into Dollar General Corporation by Bronstein, Gewirtz and Grossman, LLC likely triggered a significant sell-off due to concerns about potential legal or regulatory issues."
+        },
+        {
+            "time": "2025-11-19",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "An analyst report on November 11th covering Dollar General may have swayed investor sentiment leading up to the price movement, as investors reacted to predictions of future stock performance."
+        }
+    ],
+    "GDDY_max": [
+        {
+            "time": "2024-11-15",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        },
+        {
+            "time": "2025-01-14",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        },
+        {
+            "time": "2024-08-30",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        },
+        {
+            "time": "2025-02-13",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        },
+        {
+            "time": "2024-08-12",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        }
+    ],
+    "HD_max": [
+        {
+            "time": "2025-06-25",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        },
+        {
+            "time": "2025-08-11",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        },
+        {
+            "time": "2025-02-28",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        },
+        {
+            "time": "2024-12-06",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        },
+        {
+            "time": "2024-07-03",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No detailed AI summary available for this event"
+        }
+    ]
+}
