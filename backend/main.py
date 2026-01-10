@@ -17,6 +17,15 @@ load_dotenv()
 
 app = FastAPI()
 
+# This ensures it's one of the first routes the server "knows"
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy", 
+        "server_time": datetime.now().isoformat(),
+        "environment": "production"
+    }
+
 CACHE_FILE = "news_cache.json"
 # SEC REQUIRES a User-Agent with an email address
 SEC_HEADERS = {'User-Agent': "mit-student-project@mit.edu"}
