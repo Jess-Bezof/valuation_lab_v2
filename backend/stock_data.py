@@ -358,6 +358,7 @@ def get_real_data(ticker: str):
         
         def fetch_peer(p_ticker):
             try:
+                time.sleep(0.1) # Avoid rate limiting
                 return get_metric_details(p_ticker)
             except Exception as e:
                 print(f"⚠️ Warning: Could not fetch data for peer {p_ticker}: {e}")
@@ -655,7 +656,9 @@ def get_stock_history(ticker: str, period="1y"):
     
     try:
         print(f"⏳ DEBUG: Fetching {period} history for {ticker}...")
-        stock = yf.Ticker(ticker)
+        stock = yf.Ticker(ticker) 
+        # Instead of:
+        # stock = yf.Ticker(ticker, session=yf_session)
         
         # Optimization: Enforce 1d interval to keep payload predictable.
         # Enforce 'auto_adjust=True' to ensure Close prices are adjusted for splits.
@@ -713,8 +716,18 @@ def get_metric_details(ticker: str):
     """
     try:
         stock = yf.Ticker(ticker)
-        info = stock.info
         
+        # Robust info fetch
+        try:
+            info = stock.info
+        except Exception as e:
+             print(f"⚠️ Warning: stock.info failed for {ticker}: {e}")
+             info = {}
+             
+        if not info:
+             print(f"⚠️ Info empty for {ticker}, attempting fallback...")
+             info = {}
+
         trailing_pe = info.get('trailingPE', 0)
         revenue_ttm = info.get('totalRevenue') or info.get('revenueTrailing12Months') or 0
         ps_ratio = get_ps_ratio_from_info(info, revenue_ttm)

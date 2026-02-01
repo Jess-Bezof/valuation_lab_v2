@@ -20,7 +20,7 @@ if api_key:
         print(f"Failed to initialize Gemini Client: {e}")
 
 def get_competitors_from_ai(ticker, company_name):
-    current_model = 'gemini-2.0-flash-exp'
+    current_model = 'gemini-2.0-flash'
     
     print(f"🤖 AI Service: Using model {current_model} for {ticker}...")
 
@@ -64,7 +64,7 @@ def get_competitors_from_ai(ticker, company_name):
         return []
 
 def get_major_events_from_ai(ticker, news_data):
-    current_model = 'gemini-2.0-flash-exp'
+    current_model = 'gemini-2.0-flash'
     print(f"🤖 AI Service: Analyzing news for {ticker}...")
 
     if not client:
@@ -105,7 +105,7 @@ def analyze_price_shock(ticker, date_str, percent_change, headlines, end_date_st
     """
     Uses Gemini to identify which news headline explains a significant price move.
     """
-    current_model = 'gemini-2.0-flash-exp'
+    current_model = 'gemini-2.0-flash'
     
     if not client:
         return {
@@ -181,7 +181,7 @@ def analyze_price_shock(ticker, date_str, percent_change, headlines, end_date_st
         }
 
 def generate_fundamental_analysis(ticker, financial_context):
-    current_model = 'gemini-2.0-flash-exp'
+    current_model = 'gemini-2.0-flash'
     print(f"🤖 AI Service: Analyzing fundamentals for {ticker}...")
     
     if not client:

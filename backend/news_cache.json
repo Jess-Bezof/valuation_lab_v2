@@ -1625,5 +1625,52 @@
             "position": "aboveBar",
             "headline": "No detailed AI summary available for this event"
         }
+    ],
+    "DOCU_max": [
+        {
+            "time": "2024-12-05",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "No specific company news found, indicating the 15.34% price move on 2024-12-06 was likely due to broader market factors or technical trading."
+        },
+        {
+            "time": "2024-10-01",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "The significant stock sale by DocuSign's CEO could have negatively impacted investor confidence, contributing to the stock's decline due to concerns about the company's future prospects or valuation."
+        },
+        {
+            "time": "2025-06-05",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "Citigroup maintaining a buy rating on DocuSign while simultaneously lowering the price target suggests a mixed outlook, where the analysts believe the company is worth buying, but not at the previously expected price, likely leading to investor uncertainty and a stock price decline."
+        },
+        {
+            "time": "2025-07-28",
+            "text": "",
+            "label": "N",
+            "color": "#fbbf24",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "This article discusses DocuSign as a trending stock, suggesting increased investor attention and potential volatility, which could contribute to a significant price movement as investors react to the presented facts and analysis."
+        },
+        {
+            "time": "2025-09-29",
+            "text": "",
+            "label": "N",
+            "color": "#ef4444",
+            "shape": "circle",
+            "position": "aboveBar",
+            "headline": "This headline directly addresses the decline in DocuSign's stock price, suggesting the presence of negative company-specific news driving the price movement."
+        }
     ]
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Activity, Plus, X, History, TrendingUp } from 'lucide-react';
 import { ValuationMultiples, HistoricalMetric } from '../types';
-import { searchTickerPaged } from '../services/stockService';
+import { searchTickerPaged, getApiBase } from '../services/stockService';
 
 interface PeerData {
   ticker: string;
@@ -75,7 +75,8 @@ const RelativeValuation: React.FC<RelativeValuationProps> = ({
     setError(null);
 
     try {
-      const response = await fetch(`http://localhost:8000/api/metrics/${tickerToAdd}`);
+      const base = getApiBase();
+      const response = await fetch(`${base}/api/metrics/${tickerToAdd}`);
       if (!response.ok) throw new Error('Failed to fetch metrics');
       
       const data = await response.json();
@@ -105,7 +106,8 @@ const RelativeValuation: React.FC<RelativeValuationProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`http://localhost:8000/api/metrics/${res.ticker}`);
+      const base = getApiBase();
+      const response = await fetch(`${base}/api/metrics/${res.ticker}`);
       if (!response.ok) throw new Error('Failed to fetch metrics');
       const data = await response.json();
       setPeers([...peers, { ticker: data.ticker, metrics: data.metrics }]);
