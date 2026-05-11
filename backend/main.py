@@ -1,21 +1,48 @@
+import logging
+import re
 import time
-import traceback
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from stock_data import get_real_data, generate_narrative, get_metric_details, get_stock_history, search_ticker
-from ai_service import analyze_price_shock
+from stock_data import get_real_data, get_metric_details, get_stock_history, search_ticker
+from ai_service import analyze_price_shock, get_valuation_adjustments
 from dotenv import load_dotenv
 import os
 import requests
 import json
-import pandas as pd
 from datetime import datetime, timedelta
-from fastapi.middleware.cors import CORSMiddleware
+
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
 
+def _check_env_vars():
+    if not os.getenv("GEMINI_API_KEY"):
+        logger.warning("GEMINI_API_KEY not set — AI analysis will be unavailable")
+    if not os.getenv("ALPHA_VANTAGE_API_KEY") and not os.getenv("MARKETAUX_API_TOKEN"):
+        logger.warning("No news API keys set — news markers will use mock data")
+
+_check_env_vars()
+
 app = FastAPI()
+
+# Ticker format: 1–5 letters, optionally followed by . or - and 1–2 letters (e.g. BRK.B)
+_TICKER_RE = re.compile(r'^[A-Z]{1,5}([.\-][A-Z]{1,2})?$')
+_SEARCH_RE = re.compile(r'^[A-Za-z0-9 .\-&]+$')
+
+def _validate_ticker(ticker: str) -> str:
+    cleaned = ticker.upper().strip()
+    if not _TICKER_RE.match(cleaned):
+        raise HTTPException(status_code=422, detail=f"Invalid ticker '{ticker}'. Expected 1–5 letters (e.g. AAPL, BRK.B).")
+    return cleaned
+
+def _validate_search_query(query: str) -> str:
+    query = query.strip()
+    if len(query) > 50:
+        raise HTTPException(status_code=422, detail="Search query too long (max 50 characters).")
+    if not _SEARCH_RE.match(query):
+        raise HTTPException(status_code=422, detail="Search query contains invalid characters.")
+    return query
 
 # This ensures it's one of the first routes the server "knows"
 @app.get("/health")
@@ -28,7 +55,60 @@ async def health_check():
 
 CACHE_FILE = "news_cache.json"
 # SEC REQUIRES a User-Agent with an email address
-SEC_HEADERS = {'User-Agent': "mit-student-project@mit.edu"}
+_SEC_EMAIL = os.getenv("SEC_CONTACT_EMAIL", "mit-student-project@mit.edu")
+SEC_HEADERS = {'User-Agent': _SEC_EMAIL}
+
+# Canonical XBRL tag → list of alternative tags tried in priority order when the
+# canonical tag is absent from a company's filing.  Covers the most common
+# variations across US-GAAP filers (ASC 606 migration, banking vs non-banking, etc.)
+TAG_ALIASES: dict[str, list[str]] = {
+    'Revenues': [
+        'RevenueFromContractWithCustomerExcludingAssessedTax',
+        'RevenueFromContractWithCustomerIncludingAssessedTax',
+        'SalesRevenueNet',
+        'SalesRevenueGoodsNet',
+        'SalesRevenueServicesNet',
+        'InterestAndDividendIncomeOperating',    # banks
+    ],
+    'GrossProfit': [
+        'GrossProfitLoss',
+    ],
+    'OperatingIncomeLoss': [
+        'IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest',
+        'IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments',
+    ],
+    'NetIncomeLoss': [
+        'NetIncomeLossAvailableToCommonStockholdersBasic',
+        'ProfitLoss',
+        'IncomeLossFromContinuingOperations',
+        'NetIncomeLossAttributableToParent',
+    ],
+    'CashAndCashEquivalentsAtCarryingValue': [
+        'CashCashEquivalentsAndShortTermInvestments',
+        'CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents',
+        'CashAndDueFromBanks',
+    ],
+    'LongTermDebt': [
+        'LongTermDebtNoncurrent',
+        'LongTermDebtAndCapitalLeaseObligations',
+        'LongTermNotesPayable',
+        'SeniorLongTermNotes',
+    ],
+    'RetainedEarnings': [
+        'RetainedEarningsAccumulatedDeficit',
+    ],
+    'StockholdersEquity': [
+        'StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest',
+        'PartnersCapital',
+    ],
+    'OperatingExpenses': [
+        'CostsAndExpenses',
+        'OperatingCostsAndExpenses',
+    ],
+    'ResearchAndDevelopmentExpense': [
+        'ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost',
+    ],
+}
 
 # --- SEC EDGAR ENGINE ---
 class SECEngine:
@@ -49,7 +129,7 @@ class SECEngine:
                     # CIK must be 10 digits padded with zeros
                     return str(entry['cik_str']).zfill(10)
         except Exception as e:
-            print(f"CIK Mapping Error: {e}")
+            logger.error("CIK Mapping Error: %s", e)
         return None
 
     def get_full_financials(self):
@@ -70,43 +150,76 @@ class SECEngine:
             # ------------------------------------------------------------------
             
             reconstructed_statements = {}
+            # Tracks the most recently filed date per (fiscal_year, tag) to deduplicate
+            # restated or amended 10-K filings — later filing wins.
+            filed_tracker = {}
 
             # Iterate through ALL available US-GAAP tags in the response
             for tag, tag_data in us_gaap.items():
-                label = tag_data.get('label', tag) # Capture SEC official label
+                label = tag_data.get('label', tag)
                 description = tag_data.get('description', 'No description available')
-                
-                # Get units (USD or shares)
+
                 units = tag_data.get('units', {})
                 for unit_type, entries in units.items():
+                    # Only store USD-denominated values. Skipping 'shares', 'pure',
+                    # 'USD/shares', etc. prevents dollar and count values from
+                    # colliding under the same tag key.
+                    if unit_type != 'USD':
+                        continue
+
                     for entry in entries:
                         # STRICT FILTER: Only 10-K (Annual)
-                        if entry.get('form') == '10-K':
-                            end_date = entry['end']
-                            val = entry['val']
-                            
-                            # Extract Fiscal Year
-                            # Some 10-Ks have fiscal years different from calendar years.
-                            # We use the 'fy' field if available, otherwise parse date.
-                            fiscal_year = str(entry.get('fy', end_date[:4]))
-                            
-                            # Initialize year bucket if new
-                            if fiscal_year not in reconstructed_statements:
-                                reconstructed_statements[fiscal_year] = {
-                                    "year": fiscal_year,
-                                    "date": end_date,
-                                    "metadata": {} # Store descriptions for AI
-                                }
-                            
-                            # Store the value directly under the tag name
+                        if entry.get('form') != '10-K':
+                            continue
+
+                        # Skip quarterly sub-periods that can appear inside a 10-K
+                        # (e.g. comparative quarterly disclosure).  Allow missing fp.
+                        fp = entry.get('fp')
+                        if fp and fp != 'FY':
+                            continue
+
+                        end_date = entry['end']
+                        val = entry['val']
+                        filed = entry.get('filed', '')
+
+                        # Use the 'fy' field if available, otherwise fall back to the
+                        # year of the period-end date.
+                        fiscal_year = str(entry.get('fy', end_date[:4]))
+
+                        if fiscal_year not in reconstructed_statements:
+                            reconstructed_statements[fiscal_year] = {
+                                "year": fiscal_year,
+                                "date": end_date,
+                                "metadata": {}
+                            }
+                        if fiscal_year not in filed_tracker:
+                            filed_tracker[fiscal_year] = {}
+
+                        # Keep the value from the most recently filed 10-K for this
+                        # tag/year pair. This prefers restated/amended filings over
+                        # the original when both exist.
+                        if filed >= filed_tracker[fiscal_year].get(tag, ''):
                             reconstructed_statements[fiscal_year][tag] = val
-                            
-                            # Store metadata for AI context (only once per year per tag)
-                            if tag not in reconstructed_statements[fiscal_year]['metadata']:
-                                reconstructed_statements[fiscal_year]['metadata'][tag] = {
-                                    "label": label,
-                                    "desc": description
-                                }
+                            filed_tracker[fiscal_year][tag] = filed
+
+                        if tag not in reconstructed_statements[fiscal_year]['metadata']:
+                            reconstructed_statements[fiscal_year]['metadata'][tag] = {
+                                "label": label,
+                                "desc": description
+                            }
+
+            # ------------------------------------------------------------------
+            # Phase 1b: Alias Resolution
+            # For each year, if a canonical tag is missing, fill it from the
+            # first matching alternative tag (in TAG_ALIASES priority order).
+            # ------------------------------------------------------------------
+            for year_dict in reconstructed_statements.values():
+                for canonical, alternatives in TAG_ALIASES.items():
+                    if canonical not in year_dict:
+                        for alt in alternatives:
+                            if alt in year_dict:
+                                year_dict[canonical] = year_dict[alt]
+                                break
 
             # ------------------------------------------------------------------
             # Phase 2: Sort and Slice (Last 10 Years)
@@ -126,7 +239,7 @@ class SECEngine:
             }
 
         except Exception as e:
-            print(f"SEC Data Extraction Error: {e}")
+            logger.error("SEC Data Extraction Error: %s", e)
             return None
 
 def load_cache():
@@ -135,7 +248,7 @@ def load_cache():
     try:
         with open(CACHE_FILE, 'r') as f:
             return json.load(f)
-    except:
+    except Exception:
         return {}
 
 def save_cache(cache_data):
@@ -143,7 +256,7 @@ def save_cache(cache_data):
         with open(CACHE_FILE, 'w') as f:
             json.dump(cache_data, f, indent=4)
     except Exception as e:
-        print(f"Error saving cache: {e}")
+        logger.error("Error saving cache: %s", e)
 
 def get_stock_news(symbol: str, history_data: list = None):
     marketaux_token = os.getenv("MARKETAUX_API_TOKEN")
@@ -155,7 +268,7 @@ def get_stock_news(symbol: str, history_data: list = None):
     ]
 
     if not marketaux_token and not alpha_vantage_key:
-        print("⚠️ No News API Tokens found. Using Mock Markers.")
+        logger.warning("No News API Tokens found. Using Mock Markers.")
         return mock_markers
 
     if not history_data or len(history_data) < 2:
@@ -274,9 +387,9 @@ def get_stock_news(symbol: str, history_data: list = None):
                                     "relevance_score": match_score
                                 })
                 elif response.status_code == 429:
-                    print("⚠️ Marketaux Quota Hit.")
+                    logger.warning("Marketaux Quota Hit.")
             except Exception as e:
-                print(f"Marketaux Error: {e}")
+                logger.error("Marketaux Error: %s", e)
 
         if len(news_list) < 3 and alpha_vantage_key:
             time_from = search_start_str.replace("-", "") + "T0000"
@@ -295,7 +408,7 @@ def get_stock_news(symbol: str, history_data: list = None):
                             "relevance_score": 0.5
                         })
             except Exception as e:
-                print(f"Alpha Vantage Error: {e}")
+                logger.error("Alpha Vantage Error: %s", e)
 
         if not news_list: continue
             
@@ -311,7 +424,7 @@ def get_stock_news(symbol: str, history_data: list = None):
     # Parallel Execution of Shock Analysis
     if shock_tasks:
         import concurrent.futures
-        print(f"⚡ Processing {len(shock_tasks)} shock events in parallel...")
+        logger.info("Processing %d shock events in parallel...", len(shock_tasks))
         
         def process_shock_task(task):
             try:
@@ -324,7 +437,7 @@ def get_stock_news(symbol: str, history_data: list = None):
                 )
                 return {**result, "shock_date": task['date']}
             except Exception as e:
-                print(f"Error in parallel shock: {e}")
+                logger.error("Error in parallel shock: %s", e)
                 return None
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
@@ -380,45 +493,77 @@ def health_check():
 # In-Memory Cache for Analysis
 # Key: Ticker, Value: { "timestamp": time.time(), "data": ... }
 ANALYSIS_CACHE = {}
-ANALYSIS_CACHE_TTL = 1800 # 30 minutes
+ANALYSIS_CACHE_TTL = 1800
+ANALYSIS_CACHE_MAX = 100
+
+def _evict_cache_if_full(cache: dict, max_size: int) -> None:
+    """Drop the oldest half of entries when the cache is at capacity."""
+    if len(cache) >= max_size:
+        to_delete = list(cache.keys())[:len(cache) // 2]
+        for k in to_delete:
+            del cache[k]
 
 @app.get("/api/analyze/{ticker}")
 def analyze_stock(ticker: str):
-    ticker_key = ticker.upper()
+    ticker_key = _validate_ticker(ticker)
     current_time = time.time()
     
     # Check Cache
     if ticker_key in ANALYSIS_CACHE:
         cached_entry = ANALYSIS_CACHE[ticker_key]
         if current_time - cached_entry['timestamp'] < ANALYSIS_CACHE_TTL:
-            print(f"✅ Serving cached analysis for {ticker_key}")
+            logger.info("Serving cached analysis for %s", ticker_key)
             return cached_entry['data']
 
     try:
         data = get_real_data(ticker)
         if not data:
             raise HTTPException(status_code=404, detail="Stock data not found.")
-        narrative_data = generate_narrative(data)
-        
+
+        # get_real_data already calls generate_narrative internally and merges the
+        # result into `data`, so we extract rather than calling it a second time.
+
+        # Build the minimal context needed for AI valuation normalization.
+        vm = data.get('valuationMultiples') or {}
+        financials_context = {
+            'name': data.get('name', ticker_key),
+            'sector': vm.get('sector', ''),
+            'industry': vm.get('industry', ''),
+            'lifecycle': data.get('lifecycle', 'Mature Stable'),
+            'suggestedModel': data.get('suggestedModel', 'FCFF'),
+            'rawRevenueGrowth': data.get('revenueGrowth', 0.05),
+            'rawOperatingMargin': data.get('operatingMargin', 0.15),
+            'marketCapB': round(data.get('marketCap', 0) / 1000, 1),
+            'roic': data.get('roic', 0.15),
+            'beta': data.get('beta', 1.0),
+        }
+        valuation_adjustments = get_valuation_adjustments(ticker_key, financials_context)
+
         result = {
             "financials": data,
-            "aiReport": narrative_data['aiReport'],
-            "narrative": narrative_data['narrative']
+            "aiReport": data.get('aiReport'),
+            "narrative": data.get('narrative'),
+            "valuationAdjustments": valuation_adjustments,
         }
-        
-        # Update Cache
+
+        _evict_cache_if_full(ANALYSIS_CACHE, ANALYSIS_CACHE_MAX)
         ANALYSIS_CACHE[ticker_key] = {
             "timestamp": current_time,
             "data": result
         }
-        
-        print(f"✅ Caching fundamental analysis for {ticker_key}")
+
+        logger.info("Caching fundamental analysis for %s", ticker_key)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+_VALID_PERIODS = {"1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"}
+
 @app.get("/api/stock-history/{ticker}")
 def get_history(ticker: str, period: str = Query("1y"), refresh: bool = False):
+    ticker = _validate_ticker(ticker)
+    if period not in _VALID_PERIODS:
+        raise HTTPException(status_code=422, detail=f"Invalid period '{period}'. Choose from: {', '.join(sorted(_VALID_PERIODS))}.")
     try:
         data = get_stock_history(ticker, period)
         if not data or not data.get('history'):
@@ -446,6 +591,7 @@ def get_history(ticker: str, period: str = Query("1y"), refresh: bool = False):
 
 @app.get("/api/metrics/{ticker}")
 def get_metrics(ticker: str):
+    ticker = _validate_ticker(ticker)
     try:
         data = get_metric_details(ticker)
         if not data:
@@ -457,10 +603,7 @@ def get_metrics(ticker: str):
 # NEW: Graham Valuation Endpoint (Phase 1 Deep Financials)
 @app.get("/api/valuation/{ticker}")
 def get_valuation_financials(ticker: str):
-    """
-    Fetches full historical financials from SEC EDGAR.
-    Used for Phase 1 Graham Audit (Normalizing past years).
-    """
+    ticker = _validate_ticker(ticker)
     try:
         engine = SECEngine(ticker)
         data = engine.get_full_financials()
@@ -472,11 +615,8 @@ def get_valuation_financials(ticker: str):
 
 @app.get("/api/search-ticker/{query}")
 def search_ticker_endpoint(query: str, offset: int = Query(0, ge=0), limit: int = Query(10, ge=1, le=50)):
-    """
-    Search for tickers matching the query string.
-    """
     try:
-        # If pagination parameters are present or non-default, return paged object
+        query = _validate_search_query(query)
         paged = offset != 0 or limit != 10
         results = search_ticker(query, offset=offset, limit=limit, paged=paged)
         return results

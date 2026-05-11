@@ -1,8 +1,14 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createChart, ColorType, LineSeries, createSeriesMarkers } from 'lightweight-charts';
 import { X } from 'lucide-react';
+import { HistoryData, EventData } from '../types';
 
-const StockChart = ({ data = [], markers = [] }) => {
+interface StockChartProps {
+  data?: HistoryData[];
+  markers?: EventData[];
+}
+
+const StockChart = ({ data = [], markers = [] }: StockChartProps) => {
     const chartContainerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<any>(null);
     const [selectedNews, setSelectedNews] = useState<{ time: string; headline: string; color: string } | null>(null);
@@ -38,14 +44,11 @@ const StockChart = ({ data = [], markers = [] }) => {
 
         // 2. Create Series
         // Renaming to actualSeriesInstance to avoid conflict with the imported LineSeries class
-        const actualSeriesInstance = chart.addSeries(LineSeries, { 
-            color: '#3b82f6', 
+        const actualSeriesInstance = chart.addSeries(LineSeries, {
+            color: '#3b82f6',
             lineWidth: 2,
         }) as any;
 
-        console.log('Type of series:', typeof actualSeriesInstance.setMarkers);
-
-        let markersPlugin: any = null;
         let currentMappedMarkers: any[] = [];
 
         // 3. Set Data
@@ -58,8 +61,6 @@ const StockChart = ({ data = [], markers = [] }) => {
                 const sortedMarkers = [...markers].sort((a: any, b: any) => 
                     (new Date(a.time).getTime() - new Date(b.time).getTime())
                 );
-
-                console.log('Markers applied using v5 createSeriesMarkers plugin');
 
                 // Map markers to the format expected by lightweight-charts
                 currentMappedMarkers = sortedMarkers.map((ev: any, index) => ({
@@ -74,7 +75,7 @@ const StockChart = ({ data = [], markers = [] }) => {
                     id: index // Adding an ID for reliable lookup if supported
                 }));
 
-                markersPlugin = createSeriesMarkers(actualSeriesInstance, currentMappedMarkers);
+                createSeriesMarkers(actualSeriesInstance, currentMappedMarkers);
             }
             
             chart.timeScale().fitContent();
@@ -87,8 +88,6 @@ const StockChart = ({ data = [], markers = [] }) => {
                 setSelectedNews(null);
                 return;
             }
-
-            console.log('Marker clicked:', param.hoveredObjectId);
 
             // In v5 createSeriesMarkers, the hoveredObjectId corresponds to the 'id' property we passed
             // OR the index if no ID was provided. We passed 'id: index' explicitly.

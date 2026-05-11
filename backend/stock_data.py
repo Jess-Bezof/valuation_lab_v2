@@ -1,15 +1,15 @@
 import concurrent.futures
+import logging
 import yfinance as yf
 import pandas as pd
 import numpy as np
 import requests
 from ai_service import get_competitors_from_ai, get_major_events_from_ai, generate_fundamental_analysis
-import sys
-import traceback
 from fastapi import HTTPException
-from functools import lru_cache
 from datetime import datetime
 import time
+
+logger = logging.getLogger(__name__)
 
 SECTOR_LEADERS = {
     'Technology': ['MSFT', 'AAPL', 'NVDA', 'ORCL', 'ADBE', 'CRM', 'AMD', 'INTC'],
@@ -25,8 +25,33 @@ SECTOR_LEADERS = {
     'Basic Materials': ['LIN', 'SHW', 'FCX', 'NEM', 'DOW']
 }
 
+# Damodaran (Jan 2024) median unlevered betas by yfinance sector.
+# Used in bottom-up beta: levered_beta = unlevered × (1 + (1 − t) × D/E).
+SECTOR_UNLEVERED_BETAS = {
+    'Technology': 1.26,
+    'Healthcare': 0.78,
+    'Financial Services': 0.45,
+    'Consumer Cyclical': 0.90,
+    'Consumer Defensive': 0.57,
+    'Energy': 0.88,
+    'Utilities': 0.34,
+    'Real Estate': 0.60,
+    'Basic Materials': 0.85,
+    'Industrials': 0.92,
+    'Communication Services': 0.98,
+}
+
 PS_CACHE = {}
-PS_CACHE_TTL = 3600  # seconds
+PS_CACHE_TTL = 3600
+PS_CACHE_MAX = 200
+
+def _evict_cache_if_full(cache: dict, max_size: int) -> None:
+    """Drop the oldest half of entries when the cache is at capacity.
+    Relies on dict insertion-order preservation (Python 3.7+)."""
+    if len(cache) >= max_size:
+        to_delete = list(cache.keys())[:len(cache) // 2]
+        for k in to_delete:
+            del cache[k]
 
 def get_ps_ratio_from_info(info, revenue_ttm):
     ps = info.get('priceToSalesTrailing12Months') or info.get('trailingPS') or None
@@ -38,7 +63,7 @@ def get_ps_ratio_from_info(info, revenue_ttm):
     return 0.0
 
 def safe_divide(numerator, denominator):
-    if denominator is None or denominator == 0:
+    if numerator is None or denominator is None or denominator == 0:
         return 0.0
     return numerator / denominator
 
@@ -47,7 +72,7 @@ def get_historical_ratios(ticker: str):
     """
     Fetches 5 years of historical data to calculate annual valuation metrics.
     """
-    print(f"DEBUG: Fetching historical ratios for {ticker}")
+    logger.debug("Fetching historical ratios for %s", ticker)
     try:
         stock = yf.Ticker(ticker)
         # Fetch history (price) and financials (EPS, Revenue)
@@ -86,24 +111,21 @@ def get_historical_ratios(ticker: str):
                     idx = history.index.get_indexer([date], method='nearest')[0]
                     if idx == -1: continue
                     price = history.iloc[idx]['Close']
-            except:
+            except Exception:
                 continue
                 
             # Get Financial Metrics
             try:
-                # Basic EPS
                 eps = get_financial_value(financials, ['Basic EPS', 'Diluted EPS'], date)
-                
-                # Revenue Per Share (Total Revenue / Shares)
-                # We need Shares count at that time. 
-                # "Basic Average Shares" or "Diluted Average Shares"
                 shares = get_financial_value(financials, ['Basic Average Shares', 'Diluted Average Shares'], date)
                 revenue = get_financial_value(financials, ['Total Revenue'], date)
-                
-                # Book Value Per Share (Equity / Shares)
                 equity = get_financial_value(balance_sheet, ['Stockholders Equity', 'Total Equity Gross Minority Interest'], date)
-                
-                # Ratios
+
+                # Skip this year if any required value is missing — zeros would
+                # produce meaningless ratios (e.g. P/E = infinity, P/S = 0).
+                if any(v is None for v in [eps, shares, revenue, equity]):
+                    continue
+
                 pe = safe_divide(price, eps)
                 ps = safe_divide(price * shares, revenue)
                 pb = safe_divide(price * shares, equity)
@@ -122,43 +144,40 @@ def get_historical_ratios(ticker: str):
         return sorted(historical_metrics, key=lambda x: x['year'], reverse=True)
 
     except Exception as e:
-        print(f"Error fetching historical ratios for {ticker}: {e}")
-        traceback.print_exc()
+        logger.error("Error fetching historical ratios for %s: %s", ticker, e)
         return []
 
-def get_financial_value(df, keys, col_date=None):
-    """
-    Helper to get value from DataFrame safely.
-    If col_date is provided, fetches from that specific column.
-    """
+def get_financial_value(df, keys, col_date=None) -> float | None:
+    """Returns the first matching value as a float, or None if not found or NaN.
+    Callers must handle None explicitly — do not assume missing == zero."""
     for key in keys:
         if key in df.index:
             if col_date is not None:
-                if col_date in df.columns:
-                    val = df.loc[key, col_date]
-                    return float(val) if val is not None else 0.0
+                if col_date not in df.columns:
+                    continue
+                val = df.loc[key, col_date]
             else:
                 val = df.loc[key].iloc[0]
-                return float(val) if val is not None else 0.0
-    return 0.0
+            try:
+                f = float(val)
+                return None if np.isnan(f) else f
+            except (TypeError, ValueError):
+                continue
+    return None
 
 def get_real_data(ticker: str):
-    print(f"\n--- 🔍 DEBUG: Starting fetch for {ticker} ---")
+    logger.info("Starting fetch for %s", ticker)
     
     # 1. CORE DATA (Priority 1)
     # We must have basic info and financials to proceed.
     try:
         stock = yf.Ticker(ticker)
-        print("✅ yfinance Ticker object created.")
-        
         info = stock.info
         if not info:
             raise ValueError("No info found")
-        print(f"✅ Basic Info fetched. Sector: {info.get('sector', 'Unknown')}")
+        logger.info("Basic info fetched for %s — sector: %s", ticker, info.get('sector', 'Unknown'))
     except Exception as e:
-        print(f"❌ Basic Info fetch failed: {e}")
-        print(f"Critical Error fetching info for {ticker}: {e}")
-        traceback.print_exc()
+        logger.error("Basic info fetch failed for %s: %s", ticker, e)
         raise HTTPException(status_code=500, detail=f"Failed to fetch stock info: {str(e)}")
 
     # Fetch Financials (Also Core)
@@ -171,8 +190,7 @@ def get_real_data(ticker: str):
         balance_sheet = balance_sheet.fillna(0)
         cash_flow = cash_flow.fillna(0)
     except Exception as e:
-        print(f"Error fetching financials for {ticker}: {e}")
-        traceback.print_exc()
+        logger.error("Error fetching financials for %s: %s", ticker, e)
         raise HTTPException(status_code=500, detail=f"Failed to fetch financials: {str(e)}")
 
     # 1. Risk Free Rate (^TNX)
@@ -184,40 +202,46 @@ def get_real_data(ticker: str):
             risk_free_rate = tnx_hist['Close'].iloc[-1] / 100.0
         else:
             risk_free_rate = 0.042
-    except:
+    except Exception:
         risk_free_rate = 0.042
 
     # 2. Financials for ROIC and Tax Rate
-    # Revenue
     revenue = get_financial_value(income_stmt, ['Total Revenue', 'Revenue'])
-    
-    # Operating Income (EBIT)
-    operating_income = get_financial_value(income_stmt, ['Operating Income', 'Ebit'])
-    
-    # Effective Tax Rate
-    tax_provision = get_financial_value(income_stmt, ['Tax Provision', 'Income Tax Expense'])
-    pretax_income = get_financial_value(income_stmt, ['Pretax Income'])
-    
-    effective_tax_rate = safe_divide(tax_provision, pretax_income)
-    if effective_tax_rate == 0:
-        effective_tax_rate = 0.21
-        
-    # Clamp tax rate to reasonable bounds
-    if effective_tax_rate < 0 or effective_tax_rate > 0.5:
-        effective_tax_rate = 0.21
+    if revenue is None:
+        raise HTTPException(status_code=422, detail=f"Cannot analyse {ticker}: revenue not found in financial statements")
+
+    operating_income = get_financial_value(income_stmt, ['Operating Income', 'Ebit']) or 0.0
+
+    # Effective Tax Rate — average up to 3 years to smooth one-off items
+    # (deferred tax adjustments, carry-forwards, etc. can swing a single year wildly).
+    tax_rates = []
+    try:
+        for col in income_stmt.columns[:3]:
+            tp = get_financial_value(income_stmt, ['Tax Provision', 'Income Tax Expense'], col)
+            pi = get_financial_value(income_stmt, ['Pretax Income'], col)
+            # pi > 0 guards against fillna(0) artifacts and loss years.
+            if pi and pi > 0:
+                r = safe_divide(tp or 0.0, pi)
+                if 0 < r <= 0.5:   # exclude 0% (may be artifact) and >50% (implausible)
+                    tax_rates.append(r)
+    except Exception:
+        pass
+    effective_tax_rate = sum(tax_rates) / len(tax_rates) if tax_rates else 0.21
 
     # Balance Sheet Items
-    total_debt = get_financial_value(balance_sheet, ['Total Debt', 'Long Term Debt And Capital Lease Obligation'])
-    cash = get_financial_value(balance_sheet, ['Cash And Cash Equivalents', 'Cash Financial'])
-    total_equity = get_financial_value(balance_sheet, ['Stockholders Equity', 'Total Equity Gross Minority Interest'])
+    total_debt = get_financial_value(balance_sheet, ['Total Debt', 'Long Term Debt And Capital Lease Obligation']) or 0.0
+    cash = get_financial_value(balance_sheet, ['Cash And Cash Equivalents', 'Cash Financial']) or 0.0
+    total_equity = get_financial_value(balance_sheet, ['Stockholders Equity', 'Total Equity Gross Minority Interest']) or 0.0
 
-    # New Items for DDM
-    dividends_paid = abs(get_financial_value(cash_flow, ['Cash Dividends Paid', 'Dividends Paid']))
-    net_income = get_financial_value(income_stmt, ['Net Income', 'Net Income Common Stockholders'])
+    # DDM Items
+    dividends_paid = abs(get_financial_value(cash_flow, ['Cash Dividends Paid', 'Dividends Paid']) or 0.0)
+    net_income = get_financial_value(income_stmt, ['Net Income', 'Net Income Common Stockholders']) or 0.0
 
-    # ROIC = EBIT / (Total Equity + Total Debt - Cash)
+    # ROIC = NOPAT / Invested Capital
+    # NOPAT = Operating Income * (1 - effective tax rate)
     invested_capital = total_equity + total_debt - cash
-    roic = safe_divide(operating_income, invested_capital)
+    nopat = operating_income * (1 - effective_tax_rate)
+    roic = safe_divide(nopat, invested_capital)
 
     # --- Reinvestment Efficiency (Sales-to-Capital) ---
     # Sales / Invested Capital
@@ -226,41 +250,45 @@ def get_real_data(ticker: str):
 
     # --- STEP 2: DYNAMIC COST OF DEBT & SYNTHETIC RATING ---
     # Calculate Interest Coverage Ratio
-    interest_expense = abs(get_financial_value(income_stmt, ['Interest Expense'], None))
+    interest_expense = abs(get_financial_value(income_stmt, ['Interest Expense'], None) or 0.0)
     coverage_ratio = safe_divide(operating_income, interest_expense) if interest_expense > 0 else 100
 
-    # Determine Default Spread based on Coverage (Damodaran-style)
-    if coverage_ratio > 8.5: 
-        spread = 0.0067
-        rating = "AAA"
-    elif coverage_ratio > 6.5: 
-        spread = 0.0082
-        rating = "AA"
-    elif coverage_ratio > 5.5: 
-        spread = 0.0103
-        rating = "A"
-    elif coverage_ratio > 4.25: 
-        spread = 0.0114
-        rating = "A-"
-    elif coverage_ratio > 3.0:
-        spread = 0.0150
-        rating = "BBB"
-    else: 
-        spread = 0.0350
-        rating = "High Risk/B"
+    # Damodaran synthetic rating table — mirrors getSyntheticRating in dcfEngine.ts
+    if coverage_ratio > 8.5:   spread, rating = 0.0063, "AAA"
+    elif coverage_ratio > 6.5: spread, rating = 0.0078, "AA"
+    elif coverage_ratio > 5.5: spread, rating = 0.0098, "A+"
+    elif coverage_ratio > 4.25: spread, rating = 0.0108, "A"
+    elif coverage_ratio > 3.0:  spread, rating = 0.0122, "A-"
+    elif coverage_ratio > 2.5:  spread, rating = 0.0156, "BBB"
+    elif coverage_ratio > 2.25: spread, rating = 0.0240, "BB+"
+    elif coverage_ratio > 2.0:  spread, rating = 0.0351, "BB"
+    elif coverage_ratio > 1.75: spread, rating = 0.0478, "B+"
+    elif coverage_ratio > 1.5:  spread, rating = 0.0728, "B"
+    elif coverage_ratio > 1.25: spread, rating = 0.0913, "B-"
+    elif coverage_ratio > 0.8:  spread, rating = 0.1085, "CCC"
+    elif coverage_ratio > 0.65: spread, rating = 0.1245, "CC"
+    elif coverage_ratio > 0.2:  spread, rating = 0.1580, "C"
+    else:                       spread, rating = 0.2000, "D"
 
     dynamic_cost_of_debt = risk_free_rate + spread
     # -----------------------------------------------------------------
 
-    # 3. Lifecycle Check
-    # Need previous year revenue
+    # 3. Lifecycle Check — use 3-year CAGR where data allows.
+    # A single year's growth is noisy; one anomalous year (COVID, asset sale)
+    # would otherwise flip the lifecycle classification and model selection.
     try:
-        revenue_prev = income_stmt.loc['Total Revenue'].iloc[1] if 'Total Revenue' in income_stmt.index and len(income_stmt.columns) > 1 else revenue
-        if revenue_prev > 0:
-            revenue_growth = (revenue - revenue_prev) / revenue_prev
+        if 'Total Revenue' in income_stmt.index:
+            rev_series = income_stmt.loc['Total Revenue']
+            n = len(rev_series)
+            if n >= 4 and rev_series.iloc[3] > 0:
+                revenue_growth = (rev_series.iloc[0] / rev_series.iloc[3]) ** (1 / 3) - 1
+            elif n >= 2 and rev_series.iloc[1] > 0:
+                revenue_growth = (rev_series.iloc[0] - rev_series.iloc[1]) / rev_series.iloc[1]
+            else:
+                revenue_growth = 0.0
         else:
             revenue_growth = 0.0
-    except:
+    except Exception:
         revenue_growth = 0.05
         
     lifecycle = 'High Growth' if revenue_growth > 0.15 else 'Mature Stable'
@@ -272,7 +300,7 @@ def get_real_data(ticker: str):
     sector = info.get('sector', 'Unknown')
     industry = info.get('industry', 'Unknown')
     
-    if sector in ['Financial Services', 'Real Estate']:
+    if sector in ['Financial Services', 'Real Estate'] and dividends_paid > 0:
         suggested_model = 'DDM'
     elif revenue_growth > 0.20:
         suggested_model = 'HIGH_GROWTH'
@@ -284,8 +312,20 @@ def get_real_data(ticker: str):
     if not market_cap: # Estimate if missing
         market_cap = info.get('previousClose', 0) * info.get('sharesOutstanding', 0)
 
-    beta = info.get('beta', 1.0)
-    if beta is None: beta = 1.0
+    raw_beta = info.get('beta', 1.0) or 1.0
+
+    # Bottom-up beta (Damodaran): re-lever the sector unlevered beta using the
+    # company's actual D/E ratio via the Hamada equation.  Preferred over raw
+    # regression beta because it uses a larger sample (sector peers), is forward-
+    # looking, and is not contaminated by past leverage changes.
+    unlevered = SECTOR_UNLEVERED_BETAS.get(sector)
+    if unlevered and market_cap > 0:
+        debt_to_equity = total_debt / market_cap
+        bottom_up_beta = round(unlevered * (1 + (1 - effective_tax_rate) * debt_to_equity), 3)
+    else:
+        bottom_up_beta = None
+
+    beta = bottom_up_beta if bottom_up_beta is not None else raw_beta
 
     # Valuation Multiples
     trailing_pe = info.get('trailingPE')
@@ -308,6 +348,7 @@ def get_real_data(ticker: str):
         else:
             ps_val = get_ps_ratio_from_info(info, revenue)
             valuation_multiples["ps"] = ps_val
+            _evict_cache_if_full(PS_CACHE, PS_CACHE_MAX)
             PS_CACHE[cache_key] = {"ts": now, "value": ps_val}
     except Exception as e:
         valuation_multiples["ps"] = 0
@@ -332,19 +373,18 @@ def get_real_data(ticker: str):
         else:
             # 2. AI Based Lookup
             company_name = info.get('longName', ticker.upper())
-            print("⏳ Asking AI for competitors...")
-            
+            logger.info("Asking AI for competitors for %s", ticker)
+
             ai_peers = []
             try:
                 from ai_service import get_competitors_from_ai
                 ai_peers = get_competitors_from_ai(ticker.upper(), company_name)
             except Exception as e:
-                print(f"❌ AI Service Error: {e}")
-                traceback.print_exc()
+                logger.error("AI Service Error for %s: %s", ticker, e)
                 ai_peers = []
 
-            print(f"✅ AI returned: {ai_peers}")
-            
+            logger.info("AI returned peers for %s: %s", ticker, ai_peers)
+
             if ai_peers:
                 target_peers = ai_peers
             else:
@@ -352,16 +392,16 @@ def get_real_data(ticker: str):
                 sector_peers = SECTOR_LEADERS.get(sector, ['SPY', 'QQQ'])
                 target_peers = [p for p in sector_peers if p != ticker.upper()]
                 target_peers = target_peers[:5]
-            
+
         # 4. Fetch Data for these peers (PARALLELIZED)
-        print("⏳ Fetching peer details concurrently...")
-        
+        logger.info("Fetching peer details concurrently for %s", ticker)
+
         def fetch_peer(p_ticker):
             try:
                 time.sleep(0.1) # Avoid rate limiting
                 return get_metric_details(p_ticker)
             except Exception as e:
-                print(f"⚠️ Warning: Could not fetch data for peer {p_ticker}: {e}")
+                logger.warning("Could not fetch data for peer %s: %s", p_ticker, e)
                 return None
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
@@ -371,37 +411,38 @@ def get_real_data(ticker: str):
                 if data:
                     peer_details.append(data)
 
-        print(f"✅ Peer details fetched: {len(peer_details)} peers found.")
+        logger.info("Peer details fetched for %s: %d peers", ticker, len(peer_details))
 
     except Exception as e:
-        print(f"Warning: Peer fetch failed for {ticker}: {e}")
+        logger.warning("Peer fetch failed for %s: %s", ticker, e)
         peer_details = []
 
     if not peer_details:
-        print("⚠️ Peer list empty. Adding main ticker as fallback.")
+        logger.warning("Peer list empty for %s — adding main ticker as fallback", ticker)
         try:
             main_peer_data = get_metric_details(ticker)
             if main_peer_data:
                 peer_details.append(main_peer_data)
         except Exception as e:
-            print(f"Failed to add fallback peer data: {e}")
+            logger.error("Failed to add fallback peer data for %s: %s", ticker, e)
 
     # 7. ISOLATE HISTORY (Priority 3)
     historical_metrics = []
     try:
         historical_metrics = get_historical_ratios(ticker.upper())
     except Exception as e:
-        print(f"Warning: History fetch failed for {ticker}: {e}")
+        logger.warning("History fetch failed for %s: %s", ticker, e)
         historical_metrics = []
 
     # 8. Construct Result
-    print(f"Extraction Status: {ticker} success")
+    logger.info("Extraction complete for %s", ticker)
     result = {
         "ticker": ticker.upper(),
         "lastUpdated": datetime.now().isoformat(),
         "name": info.get('longName', ticker.upper()),
         "price": info.get('currentPrice', info.get('previousClose', 0.0)),
         "beta": beta,
+        "bottomUpBeta": bottom_up_beta,
         "marketCap": market_cap / 1_000_000,
         "totalDebt": total_debt / 1_000_000,
         "cash": cash / 1_000_000,
@@ -434,7 +475,7 @@ def get_real_data(ticker: str):
     try:
         result.update(generate_narrative(result))
     except Exception as e:
-        print(f"Error generating narrative: {e}")
+        logger.error("Error generating narrative for %s: %s", ticker, e)
 
     return result
 
@@ -465,7 +506,7 @@ def get_sector_stats(sector, income, balance, cash_flow, info):
             
             # FCF Margin
             ocf = get_financial_value(cash_flow, ['Operating Cash Flow', 'Total Cash From Operating Activities'])
-            capex = abs(get_financial_value(cash_flow, ['Capital Expenditure', 'Capital Expenditures']))
+            capex = abs(get_financial_value(cash_flow, ['Capital Expenditure', 'Capital Expenditures']) or 0.0)
             fcf = ocf - capex
             fcf_margin = safe_divide(fcf, revenue) * 100
             
@@ -532,7 +573,7 @@ def get_sector_stats(sector, income, balance, cash_flow, info):
             stats["template"] = "REITs"
             
             # 1. FFO (Proxy: Net Income + Depreciation)
-            depreciation = get_financial_value(cash_flow, ['Depreciation And Amortization', 'Depreciation'])
+            depreciation = get_financial_value(cash_flow, ['Depreciation And Amortization', 'Depreciation']) or 0.0
             ffo = net_income + depreciation
             
             # 2. Debt to EBITDA
@@ -575,15 +616,13 @@ def get_sector_stats(sector, income, balance, cash_flow, info):
             ]
             
     except Exception as e:
-        print(f"Error calculating sector stats: {e}")
-        # Return empty metrics on error
+        logger.error("Error calculating sector stats: %s", e)
         stats["metrics"] = []
         
     return stats
 
-import time
-
 EVENT_CACHE = {}
+EVENT_CACHE_MAX = 100
 
 def get_major_events(ticker: str):
     """
@@ -596,10 +635,10 @@ def get_major_events(ticker: str):
         if ticker in EVENT_CACHE:
             cached_data = EVENT_CACHE[ticker]
             if current_time - cached_data['timestamp'] < 86400: # 24 hours
-                print(f"✅ Using cached events for {ticker}")
+                logger.info("Using cached events for %s", ticker)
                 return cached_data['events']
 
-        print(f"⏳ Fetching fresh events for {ticker}...")
+        logger.info("Fetching fresh events for %s", ticker)
         stock = yf.Ticker(ticker)
         news = stock.news
         
@@ -634,7 +673,7 @@ def get_major_events(ticker: str):
                 ev['color'] = '#fbbf24'
                 ev['shape'] = 'circle'
         
-        # Update Cache
+        _evict_cache_if_full(EVENT_CACHE, EVENT_CACHE_MAX)
         EVENT_CACHE[ticker] = {
             'timestamp': current_time,
             'events': events
@@ -642,8 +681,7 @@ def get_major_events(ticker: str):
         
         return events
     except Exception as e:
-        print(f"!!! AI QUOTA REACHED OR ERROR: {str(e)}")
-        # Return empty list on failure instead of crashing
+        logger.error("AI events failed for %s: %s", ticker, e)
         return []
 
 def get_stock_history(ticker: str, period="1y"):
@@ -655,7 +693,7 @@ def get_stock_history(ticker: str, period="1y"):
     history_data = []
     
     try:
-        print(f"⏳ DEBUG: Fetching {period} history for {ticker}...")
+        logger.info("Fetching %s history for %s", period, ticker)
         stock = yf.Ticker(ticker) 
         # Instead of:
         # stock = yf.Ticker(ticker, session=yf_session)
@@ -666,7 +704,7 @@ def get_stock_history(ticker: str, period="1y"):
         
         # FIX: Check if history is None or empty properly
         if history is None or history.empty:
-            print(f"⚠️ No history data returned for {ticker}")
+            logger.warning("No history data returned for %s", ticker)
             return {"history": [], "events": []}
             
         if not history.empty:
@@ -683,20 +721,18 @@ def get_stock_history(ticker: str, period="1y"):
             # Ensure data is sorted by time (required for lightweight-charts)
             history_data.sort(key=lambda x: x['time'])
             
-        print(f"✅ Extraction Status: {ticker} success ({len(history_data)} points)")
-        
+        logger.info("History fetched for %s: %d points", ticker, len(history_data))
+
     except Exception as e:
-        print(f"❌ Error fetching history for {ticker}: {e}")
+        logger.error("Error fetching history for %s: %s", ticker, e)
         return {"history": [], "events": []}
 
     # 2. Fetch Events (AI Bonus)
     events_data = []
     try:
-        # We only fetch events if the period is 1y or less to save AI tokens 
-        # unless explicitly requested.
         events_data = get_major_events(ticker)
     except Exception as e:
-        print(f"⚠️ AI Events Failed for {ticker}: {e}")
+        logger.warning("AI events failed for %s: %s", ticker, e)
         events_data = []
 
     return {
@@ -705,10 +741,6 @@ def get_stock_history(ticker: str, period="1y"):
         "ticker": ticker,
         "period": period
     }
-
-# Deprecated but keeping for reference if needed, logic moved to get_real_data
-def fetch_peer_details(ticker: str):
-    return []
 
 def get_metric_details(ticker: str):
     """
@@ -721,18 +753,18 @@ def get_metric_details(ticker: str):
         try:
             info = stock.info
         except Exception as e:
-             print(f"⚠️ Warning: stock.info failed for {ticker}: {e}")
+             logger.warning("stock.info failed for %s: %s", ticker, e)
              info = {}
-             
+
         if not info:
-             print(f"⚠️ Info empty for {ticker}, attempting fallback...")
+             logger.warning("Info empty for %s", ticker)
              info = {}
 
         trailing_pe = info.get('trailingPE', 0)
         revenue_ttm = info.get('totalRevenue') or info.get('revenueTrailing12Months') or 0
         ps_ratio = get_ps_ratio_from_info(info, revenue_ttm)
-        
-        print(f"Extraction Status: {ticker} success")
+
+        logger.info("Metrics extracted for %s", ticker)
         return {
             "ticker": ticker.upper(),
             "metrics": {
@@ -747,7 +779,7 @@ def get_metric_details(ticker: str):
             }
         }
     except Exception as e:
-        print(f"Error fetching metrics for {ticker}: {e}")
+        logger.error("Error fetching metrics for %s: %s", ticker, e)
         return None
 
 def generate_narrative(data):
@@ -879,5 +911,5 @@ def search_ticker(query: str, offset: int = 0, limit: int = 10, paged: bool = Fa
             "limit": limit
         }
     except Exception as e:
-        print(f"Error searching ticker {query}: {e}")
+        logger.error("Error searching ticker %s: %s", query, e)
         return [] if not paged else {"results": [], "total": 0, "offset": offset, "limit": limit}

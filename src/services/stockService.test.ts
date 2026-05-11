@@ -74,20 +74,6 @@ describe('stockService environment and endpoint construction', () => {
     expect(url).toContain('/api/stock-history/NVDA?period=6mo&refresh=true');
   });
 
-  it('uses metrics endpoint for events', async () => {
-    setEnvValue('http://localhost:8000');
-    const fetchSpy = vi.spyOn(globalThis, 'fetch' as any).mockResolvedValue({
-      ok: true,
-      json: async () => ({ events: [] })
-    } as any);
-
-    const { fetchStockEvents } = await import('./stockService');
-    await fetchStockEvents('GOOGL');
-
-    const url = (fetchSpy.mock.calls[0]?.[0] as string) || '';
-    expect(url.endsWith('/api/metrics/GOOGL')).toBe(true);
-  });
-
   it('constructs valuation and search-ticker endpoints', async () => {
     const configured = 'http://localhost:8000';
     setEnvValue(configured);

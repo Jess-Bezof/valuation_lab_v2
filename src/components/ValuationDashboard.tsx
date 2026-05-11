@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Search, RotateCcw, TrendingUp, AlertCircle, DollarSign, Activity, Percent, FileText, BarChart3, PieChart, Users, LineChart, Info, AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, RotateCcw, TrendingUp, AlertCircle, DollarSign, Activity, Percent, FileText, Info, AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { fetchStockAnalysis, fetchStockHistory, fetchValuationFinancials, searchTicker } from '../services/stockService';
-import { calculateIntrinsicValue } from '../utils/dcfEngine';
-import { AnalysisResult, HistoryData, EventData } from '../types';
+import { calculateIntrinsicValue, calculateScenarios } from '../utils/dcfEngine';
+import { AnalysisResult, AiInputAdjustment, HistoryData, EventData, SECFinancials, SECYearData } from '../types';
 import SliderControl from './SliderControl';
 import DCFChart from './DCFChart';
 import AiReportCard from './AiReportCard';
@@ -24,12 +24,42 @@ const lineItemLabels: Record<string, string> = {
   'NetIncomeLoss': 'Net Income',
   'AssetsCurrent': 'Current Assets',
   'LiabilitiesCurrent': 'Current Liabilities',
-  'EntityCommonStockSharesOutstanding': 'Shares Outstanding',
+  'StockholdersEquity': "Stockholders' Equity",
   'ResearchAndDevelopmentExpense': 'R&D Expense',
   'OperatingExpenses': 'Operating Expenses',
   'CashAndCashEquivalentsAtCarryingValue': 'Cash & Equivalents',
   'LongTermDebt': 'Long Term Debt',
   'RetainedEarnings': 'Retained Earnings'
+};
+
+// Inline chip that shows AI reasoning below a slider.
+// Dims to "overridden" style when the live value drifts from the AI value.
+const AiChip: React.FC<{
+  adj: AiInputAdjustment;
+  liveValue: number;
+  formatValue: (v: number) => string;
+}> = ({ adj, liveValue, formatValue }) => {
+  const isOverridden = Math.abs(liveValue - adj.value) > 0.0005;
+  return (
+    <div className={`flex items-start gap-2 mt-1.5 px-3 py-2 rounded-lg text-xs transition-all duration-200 ${
+      isOverridden
+        ? 'bg-slate-800/40 border border-slate-700/30 opacity-50'
+        : 'bg-indigo-950/40 border border-indigo-800/30'
+    }`}>
+      <span className={`shrink-0 font-bold mt-0.5 ${isOverridden ? 'text-slate-500' : 'text-indigo-400'}`}>
+        {isOverridden ? '✦ AI' : '⚡ AI'}
+      </span>
+      <div className="min-w-0">
+        <p className={`leading-snug break-words ${isOverridden ? 'text-slate-500' : 'text-slate-300'}`}>
+          {adj.reasoning}
+        </p>
+        <p className="text-slate-600 mt-0.5 font-mono">
+          raw: {formatValue(adj.rawValue)} → adjusted: {formatValue(adj.value)}
+          {isOverridden && <span className="text-amber-700 ml-2">· overridden</span>}
+        </p>
+      </div>
+    </div>
+  );
 };
 
 const ValuationDashboard: React.FC = () => {
@@ -39,7 +69,7 @@ const ValuationDashboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [chartLoading, setChartLoading] = useState(false); 
   const [error, setError] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState<'FCFF' | 'DDM' | 'HIGH_GROWTH'>('FCFF');
+  const [selectedModel, setSelectedModel] = useState<'FCFF' | 'DDM'>('FCFF');
   const [baseInputs, setBaseInputs] = useState<AnalysisResult['inputs'] | null>(null);
   const [historicalPriceData, setHistoricalPriceData] = useState<HistoryData[]>([]);
   const [stockEvents, setStockEvents] = useState<EventData[]>([]);
@@ -51,7 +81,11 @@ const ValuationDashboard: React.FC = () => {
 
   // New State for Full Financials Tab
   const [activeTab, setActiveTab] = useState<'financials' | 'sentiment' | 'fcf' | 'report' | 'multiples'>('fcf');
-  const [valuationData, setValuationData] = useState<any>(null);
+  const [valuationData, setValuationData] = useState<SECFinancials | null>(null);
+
+  // Tracks the current search generation. Incremented on every new search so
+  // state updates from an in-flight request for a previous ticker are ignored.
+  const searchGenRef = useRef(0);
 
   // Debounced Search Effect
   useEffect(() => {
@@ -83,43 +117,51 @@ const ValuationDashboard: React.FC = () => {
 
   const handleFullSearch = async (targetTicker: string, refresh = false) => {
     if (!targetTicker) return;
+
+    // Stamp this search so we can discard results from previous in-flight requests.
+    const thisGen = ++searchGenRef.current;
+
     setLoading(true);
     setChartLoading(true);
     setError(null);
-    setValuationData(null); // Reset SEC data on new search
+    setValuationData(null);
 
-    // Optimistic: Start chart loading immediately if data is available
-    // But we need the real fetch to finish for full analysis.
-    
     try {
-      // 1. Fetch History FIRST (Fastest) to show chart immediately
+      // Start chart history fetch immediately (fastest). Guard state updates with
+      // the generation stamp so a slow response from a previous ticker is ignored.
       fetchStockHistory(targetTicker, 'max', refresh).then(historyResult => {
-          setHistoricalPriceData(historyResult.history || []);
-          setStockEvents(historyResult.events || []);
-          setChartLoading(false);
-      }).catch(err => console.error("History fetch failed", err));
+        if (searchGenRef.current !== thisGen) return;
+        setHistoricalPriceData(historyResult.history || []);
+        setStockEvents(historyResult.events || []);
+        setChartLoading(false);
+      }).catch(err => console.error('History fetch failed', err));
 
-      // 2. Fetch Deep Analysis & Financials (Slower)
       const [analysisResult, valuationResult] = await Promise.all([
         fetchStockAnalysis(targetTicker),
         fetchValuationFinancials(targetTicker)
       ]);
 
-      // 3. Update the live dashboard states
+      if (searchGenRef.current !== thisGen) return;
+
       setAnalysis(analysisResult);
       setBaseInputs(analysisResult.inputs);
       setValuationData(valuationResult);
-      
+
       if (analysisResult.financials.suggestedModel) {
-        setSelectedModel(analysisResult.financials.suggestedModel);
+        // HIGH_GROWTH is merged into adaptive FCFF; map it accordingly
+        const model = analysisResult.financials.suggestedModel === 'HIGH_GROWTH' ? 'FCFF' : analysisResult.financials.suggestedModel;
+        setSelectedModel(model as 'FCFF' | 'DDM');
       }
     } catch (err) {
+      if (searchGenRef.current !== thisGen) return;
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
       setAnalysis(null);
-      setBaseInputs(null); // Clear snapshot on error
+      setBaseInputs(null);
     } finally {
-      setLoading(false);
-      setChartLoading(false);
+      if (searchGenRef.current === thisGen) {
+        setLoading(false);
+        setChartLoading(false);
+      }
     }
   };
 
@@ -130,7 +172,7 @@ const ValuationDashboard: React.FC = () => {
     setAnalysis({ ...analysis, inputs: newInputs, valuation: newValuation });
   };
 
-  const handleModelChange = (model: 'FCFF' | 'DDM' | 'HIGH_GROWTH') => {
+  const handleModelChange = (model: 'FCFF' | 'DDM') => {
     if (!analysis) return;
     setSelectedModel(model);
     const newValuation = calculateIntrinsicValue(analysis.financials, analysis.inputs, model);
@@ -341,16 +383,18 @@ return (
                 <div className="flex justify-between items-center bg-slate-900/40 p-4 rounded-xl border border-slate-800">
                   <span className="text-slate-400 text-sm font-medium">Active Valuation Model:</span>
                   <div className="flex items-center gap-3">
-                    <select 
-                      value={selectedModel} 
-                      onChange={(e) => handleModelChange(e.target.value as any)} 
+                    <select
+                      value={selectedModel}
+                      onChange={(e) => handleModelChange(e.target.value as 'FCFF' | 'DDM')}
                       className="bg-slate-800 text-white text-sm rounded-md px-3 py-1.5 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <option value="FCFF">Standard DCF (FCFF)</option>
+                      <option value="FCFF">
+                        DCF (FCFF) — {analysis.financials.lifecycle === 'High Growth' ? '10-yr · Two-Phase' : '5-yr · Stable'}
+                      </option>
                       <option value="DDM">Dividend Discount (DDM)</option>
-                      <option value="HIGH_GROWTH">High Growth (Startup)</option>
                     </select>
-                    {analysis.financials.suggestedModel === selectedModel && (
+                    {(analysis.financials.suggestedModel === selectedModel ||
+                      (analysis.financials.suggestedModel === 'HIGH_GROWTH' && selectedModel === 'FCFF')) && (
                       <span className="text-[10px] uppercase font-bold text-blue-400 bg-blue-900/30 px-2 py-1 rounded border border-blue-800">Recommended</span>
                     )}
                   </div>
@@ -424,7 +468,7 @@ return (
                             <th className="py-3 px-4 text-slate-400 font-medium sticky left-0 bg-[#0F131C] z-20 w-48 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.5)]">
                               Fiscal Year
                             </th>
-                            {valuationData.financials.map((yearData: any) => (
+                            {valuationData.financials.map((yearData: SECYearData) => (
                               <th key={yearData.year} className="py-3 px-6 text-slate-300 font-mono text-right min-w-[140px]">
                                 {yearData.year}
                               </th>
@@ -438,11 +482,11 @@ return (
                                <td className="py-3 px-4 text-slate-300 font-medium sticky left-0 bg-[#0F131C] group-hover:bg-[#161b26] z-20 border-r border-slate-800 shadow-[4px_0_12px_-4px_rgba(0,0,0,0.5)] transition-colors">
                                  {label}
                                </td>
-                               {valuationData.financials.map((yearData: any) => {
+                               {valuationData.financials.map((yearData: SECYearData) => {
                                  const val = yearData[key];
                                  return (
                                    <td key={`${yearData.year}-${key}`} className="py-3 px-6 text-slate-400 font-mono text-right group-hover:text-slate-200">
-                                     {val !== undefined ? formatCurrency(val) : '-'}
+                                     {typeof val === 'number' ? formatCurrency(val) : '-'}
                                    </td>
                                  );
                                })}
@@ -498,6 +542,39 @@ return (
                   </div>
                 )}
 
+                {/* Bull / Base / Bear Scenario Bar */}
+                {(() => {
+                  const scenarios = calculateScenarios(analysis.financials, analysis.inputs, selectedModel);
+                  const price = analysis.financials.price;
+                  const fmt = (v: number) => `$${v.toFixed(2)}`;
+                  const pct = (v: number) => `${v >= 0 ? '+' : ''}${(v * 100).toFixed(1)}%`;
+                  const cards = [
+                    { label: 'Bear', data: scenarios.bear, accent: 'red', desc: 'Growth ÷2 · Margin −15% · WACC +2%' },
+                    { label: 'Base', data: scenarios.base, accent: 'blue', desc: 'Current assumptions' },
+                    { label: 'Bull', data: scenarios.bull, accent: 'emerald', desc: 'Growth ×1.5 · Margin +15% · WACC −1.5%' },
+                  ] as const;
+                  return (
+                    <div className="grid grid-cols-3 gap-3">
+                      {cards.map(({ label, data, accent, desc }) => {
+                        const upside = price > 0 ? (data.intrinsicValue - price) / price : 0;
+                        const colorMap = {
+                          red: { bg: 'bg-red-900/20', border: 'border-red-800', badge: 'bg-red-900/40 text-red-300', val: 'text-red-300', up: 'text-red-400' },
+                          blue: { bg: 'bg-blue-900/20', border: 'border-blue-800', badge: 'bg-blue-900/40 text-blue-300', val: 'text-blue-300', up: upside >= 0 ? 'text-green-400' : 'text-red-400' },
+                          emerald: { bg: 'bg-emerald-900/20', border: 'border-emerald-800', badge: 'bg-emerald-900/40 text-emerald-300', val: 'text-emerald-300', up: 'text-emerald-400' },
+                        }[accent];
+                        return (
+                          <div key={label} className={`${colorMap.bg} border ${colorMap.border} rounded-xl p-4`}>
+                            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${colorMap.badge}`}>{label}</span>
+                            <div className={`text-2xl font-bold mt-2 ${colorMap.val}`}>{fmt(data.intrinsicValue)}</div>
+                            <div className={`text-sm font-semibold ${colorMap.up}`}>{pct(upside)}</div>
+                            <div className="text-[10px] text-slate-500 mt-2 leading-snug">{desc}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+
                 <DCFChart dcfDetails={analysis.valuation.dcfDetails} />
                 
                 {/* Growth Efficiency Insight Box */}
@@ -507,10 +584,14 @@ return (
                   const roic = analysis.financials.roic;
                   const growthRate = analysis.inputs.revenueGrowth;
                   const growthExceedsRoic = growthRate > roic;
+                  const ddmDivGrowth = analysis.valuation.dcfDetails.dividendGrowthRate;
+                  const unsustainableDdm = selectedModel === 'DDM' && ddmDivGrowth !== undefined && ddmDivGrowth < 0;
 
-                  let status: 'distressed' | 'critical' | 'caution' | 'info' | 'sustainable' = 'sustainable';
-                  
-                  if (roic < 0 && anyNegativeFCF) {
+                  let status: 'distressed' | 'critical' | 'caution' | 'info' | 'sustainable' | 'ddm_unsustainable' = 'sustainable';
+
+                  if (unsustainableDdm) {
+                    status = 'ddm_unsustainable';
+                  } else if (roic < 0 && anyNegativeFCF) {
                     status = 'distressed';
                   } else if (growthExceedsRoic && anyNegativeFCF) {
                     status = 'critical';
@@ -523,6 +604,12 @@ return (
                   }
 
                   const configs = {
+                    ddm_unsustainable: {
+                      bg: 'bg-amber-900/20', border: 'border-amber-700', text: 'text-amber-200',
+                      icon: <AlertTriangle className="w-5 h-5 text-amber-400" />,
+                      title: "Warning: Unsustainable Dividend Payout",
+                      desc: `Dividends exceed earnings (payout ratio > 100%). Sustainable dividend growth is ${ddmDivGrowth !== undefined ? (ddmDivGrowth * 100).toFixed(1) : '?'}% — a negative rate signals a likely dividend cut. The DDM terminal value assumes the company eventually reaches a sustainable payout.`
+                    },
                     distressed: {
                       bg: 'bg-red-950', border: 'border-red-600 border-2', text: 'text-red-100',
                       icon: <ShieldAlert className="w-6 h-6 text-red-500" />,
@@ -567,15 +654,17 @@ return (
                         <p className={`text-xs mt-1 leading-relaxed ${status === 'distressed' ? 'text-red-200' : 'text-slate-400'}`}>
                           {config.desc}
                         </p>
-                        <div className="mt-2 flex items-center gap-4 text-[10px] uppercase font-mono text-slate-500">
-                          <span className={growthRate < 0 || (status === 'distressed') ? 'text-red-400' : (growthExceedsRoic ? 'text-red-400' : 'text-green-400')}>
-                            Growth: {(analysis.inputs.revenueGrowth * 100).toFixed(1)}%
-                          </span>
-                          <span className="text-slate-600">vs</span>
-                          <span className={roic < 0 || (status === 'distressed') ? 'text-red-400' : (roic > analysis.inputs.revenueGrowth ? 'text-green-400' : 'text-amber-400')}>
-                            ROIC: {(roic * 100).toFixed(1)}%
-                          </span>
-                        </div>
+                        {status !== 'ddm_unsustainable' && (
+                          <div className="mt-2 flex items-center gap-4 text-[10px] uppercase font-mono text-slate-500">
+                            <span className={growthRate < 0 || (status === 'distressed') ? 'text-red-400' : (growthExceedsRoic ? 'text-red-400' : 'text-green-400')}>
+                              Growth: {(analysis.inputs.revenueGrowth * 100).toFixed(1)}%
+                            </span>
+                            <span className="text-slate-600">vs</span>
+                            <span className={roic < 0 || (status === 'distressed') ? 'text-red-400' : (roic > analysis.inputs.revenueGrowth ? 'text-green-400' : 'text-amber-400')}>
+                              ROIC: {(roic * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -590,6 +679,12 @@ return (
                     <Percent className="w-5 h-5 text-blue-500" />
                     Detailed Metrics
                   </h3>
+                  {(() => {
+                    const nopat = analysis.financials.operatingIncome * (1 - analysis.financials.taxRate);
+                    const investedCapital = analysis.financials.roic > 0 ? nopat / analysis.financials.roic : 0;
+                    const excessSpread = analysis.financials.roic - analysis.valuation.wacc;
+                    const excessReturns = excessSpread * investedCapital;
+                    return (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                     {/* Row 1: Core Valuation Components */}
                     <div>
@@ -628,7 +723,31 @@ return (
                       <div className="text-xs text-slate-500 uppercase tracking-wider">Tax Rate</div>
                       <div className="text-lg font-medium text-white">{(analysis.financials.taxRate * 100).toFixed(1)}%</div>
                     </div>
+
+                    {/* Row 3: Excess Returns (Damodaran value creation framework) */}
+                    <div>
+                      <div className="text-xs text-slate-500 uppercase tracking-wider">ROIC − WACC</div>
+                      <div className={`text-lg font-medium ${excessSpread >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {excessSpread >= 0 ? '+' : ''}{(excessSpread * 100).toFixed(1)}%
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-slate-500 uppercase tracking-wider">Annual Excess Returns</div>
+                      <div className={`text-lg font-medium ${excessReturns >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {excessReturns >= 0 ? '+' : '-'}${(Math.abs(excessReturns) / 1000).toFixed(1)}B
+                      </div>
+                    </div>
+                    <div className="col-span-2">
+                      <div className="text-xs text-slate-500 uppercase tracking-wider">Value Creation</div>
+                      <div className={`text-sm font-medium mt-1 ${excessSpread >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {excessSpread >= 0
+                          ? `Creates $${(Math.abs(excessReturns) / 1000).toFixed(1)}B/yr — growth at ROIC > WACC compounds value`
+                          : `Destroys $${(Math.abs(excessReturns) / 1000).toFixed(1)}B/yr — growth at ROIC < WACC erodes value`}
+                      </div>
+                    </div>
                   </div>
+                    );
+                  })()}
                 </div>
               </>
             )}
@@ -654,61 +773,112 @@ return (
           {/* RIGHT COLUMN: Valuation Lab Sliders (4 Cols) */}
           <div className="lg:col-span-4">
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl sticky top-6">
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-semibold text-white">Valuation Levers</h3>
                 <button onClick={handleReset} className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
                   <RotateCcw className="w-5 h-5" />
                 </button>
               </div>
 
+              {/* AI Context Banner */}
+              {analysis.valuationAdjustments && (() => {
+                const va = analysis.valuationAdjustments!;
+                const cyclicalityColor = va.cyclicality === 'high' ? 'text-red-400' : va.cyclicality === 'medium' ? 'text-amber-400' : 'text-green-400';
+                const moatColor = va.moatStrength === 'strong' ? 'text-green-400' : va.moatStrength === 'moderate' ? 'text-amber-400' : 'text-red-400';
+                return (
+                  <div className="mb-5 p-3 bg-indigo-950/50 border border-indigo-800/40 rounded-lg">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className="text-indigo-400 font-bold text-[10px] uppercase tracking-wider">⚡ AI Normalized</span>
+                      <span className="text-slate-600">·</span>
+                      <span className="text-slate-400 text-[10px] capitalize">{va.companyType.replace(/_/g, ' ')}</span>
+                    </div>
+                    <div className="flex gap-3 mb-2 text-[10px] uppercase font-mono">
+                      <span className={cyclicalityColor}>{va.cyclicality} cyclicality</span>
+                      <span className="text-slate-600">·</span>
+                      <span className={moatColor}>{va.moatStrength} moat</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-snug">{va.summary}</p>
+                  </div>
+                );
+              })()}
+
               <div className="space-y-4">
-                <SliderControl 
-                  label="Revenue Growth" 
-                  value={analysis.inputs.revenueGrowth} 
-                  min={-0.10} max={0.50} step={0.01} 
-                  onChange={(v) => handleInputChange('revenueGrowth', v)} 
-                  formatValue={(v) => `${(v * 100).toFixed(1)}%`} 
-                  color="blue" 
+                <div>
+                  <SliderControl
+                    label="Revenue Growth"
+                    value={analysis.inputs.revenueGrowth}
+                    min={-0.10} max={0.50} step={0.01}
+                    onChange={(v) => handleInputChange('revenueGrowth', v)}
+                    formatValue={(v) => `${(v * 100).toFixed(1)}%`}
+                    color="blue"
+                  />
+                  {analysis.valuationAdjustments?.adjustments.revenueGrowth && (
+                    <AiChip
+                      adj={analysis.valuationAdjustments.adjustments.revenueGrowth}
+                      liveValue={analysis.inputs.revenueGrowth}
+                      formatValue={(v) => `${(v * 100).toFixed(1)}%`}
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <SliderControl
+                    label="Target Operating Margin"
+                    value={analysis.inputs.targetOperatingMargin}
+                    min={0.01} max={0.60} step={0.01}
+                    onChange={(v) => handleInputChange('targetOperatingMargin', v)}
+                    formatValue={(v) => `${(v * 100).toFixed(1)}%`}
+                    color="green"
+                  />
+                  {analysis.valuationAdjustments?.adjustments.targetOperatingMargin && (
+                    <AiChip
+                      adj={analysis.valuationAdjustments.adjustments.targetOperatingMargin}
+                      liveValue={analysis.inputs.targetOperatingMargin}
+                      formatValue={(v) => `${(v * 100).toFixed(1)}%`}
+                    />
+                  )}
+                </div>
+
+                <SliderControl
+                  label="Marginal Tax Rate"
+                  value={analysis.inputs.taxRate}
+                  min={0.0} max={0.45} step={0.01}
+                  onChange={(v) => handleInputChange('taxRate', v)}
+                  formatValue={(v) => `${(v * 100).toFixed(1)}%`}
+                  color="purple"
                 />
 
-                <SliderControl 
-                  label="Target Operating Margin" 
-                  value={analysis.inputs.targetOperatingMargin} 
-                  min={0.01} max={0.60} step={0.01} 
-                  onChange={(v) => handleInputChange('targetOperatingMargin', v)} 
-                  formatValue={(v) => `${(v * 100).toFixed(1)}%`} 
-                  color="green" 
+                <SliderControl
+                  label="WACC (Discount Rate)"
+                  value={analysis.inputs.wacc}
+                  min={0.04} max={0.15} step={0.001}
+                  onChange={(v) => handleInputChange('wacc', v)}
+                  formatValue={(v) => `${(v * 100).toFixed(1)}%`}
+                  color="orange"
                 />
 
-                <SliderControl 
-                  label="Marginal Tax Rate" 
-                  value={analysis.inputs.taxRate} 
-                  min={0.0} max={0.45} step={0.01} 
-                  onChange={(v) => handleInputChange('taxRate', v)} 
-                  formatValue={(v) => `${(v * 100).toFixed(1)}%`} 
-                  color="purple" 
+                <SliderControl
+                  label="Terminal Growth Rate"
+                  value={analysis.inputs.terminalGrowthRate}
+                  min={0.0}
+                  max={analysis.financials.riskFreeRate}
+                  step={0.001}
+                  onChange={(v) => handleInputChange('terminalGrowthRate', v)}
+                  formatValue={(v) => `${(v * 100).toFixed(1)}%`}
+                  color="teal"
                 />
 
-                <SliderControl 
-                  label="WACC (Discount Rate)" 
-                  value={analysis.inputs.wacc} 
-                  min={0.04} max={0.15} step={0.001} 
-                  onChange={(v) => handleInputChange('wacc', v)} 
-                  formatValue={(v) => `${(v * 100).toFixed(1)}%`} 
-                  color="orange" 
+                <SliderControl
+                  label="Equity Risk Premium"
+                  value={analysis.inputs.equityRiskPremium}
+                  min={0.03} max={0.08} step={0.001}
+                  onChange={(v) => handleInputChange('equityRiskPremium', v)}
+                  formatValue={(v) => `${(v * 100).toFixed(1)}%`}
+                  color="orange"
                 />
 
-                <SliderControl 
-                  label="Terminal Growth Rate" 
-                  value={analysis.inputs.terminalGrowthRate} 
-                  min={0.0} max={0.06} step={0.001} 
-                  onChange={(v) => handleInputChange('terminalGrowthRate', v)} 
-                  formatValue={(v) => `${(v * 100).toFixed(1)}%`} 
-                  color="teal" 
-                />
-
-                <div className="mt-4 p-4 bg-blue-900/10 border border-blue-800/20 rounded-lg text-xs text-blue-300">
-                  Levers update the Intrinsic Value in real-time. Tax rate adjustments directly impact your after-tax cash flow projections.
+                <div className="mt-4 p-3 bg-blue-900/10 border border-blue-800/20 rounded-lg text-xs text-blue-300">
+                  Levers update Intrinsic Value in real-time. ⚡ AI chips show normalized inputs — drag to override.
                 </div>
               </div>
             </div>

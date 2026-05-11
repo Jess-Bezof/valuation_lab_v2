@@ -16,12 +16,12 @@ interface RelativeValuationProps {
   salesPerShare?: number;
 }
 
-const RelativeValuation: React.FC<RelativeValuationProps> = ({ 
-  currentTicker, 
-  currentMetrics, 
+const RelativeValuation: React.FC<RelativeValuationProps> = ({
+  currentTicker,
+  currentMetrics,
   initialPeers = [],
   historicalMetrics = [],
-  salesPerShare
+  salesPerShare: _salesPerShare
 }) => {
   const [peers, setPeers] = useState<PeerData[]>(initialPeers);
   const [newTicker, setNewTicker] = useState('');

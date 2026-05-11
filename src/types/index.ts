@@ -55,6 +55,8 @@ export interface StockFinancials {
   operatingMargin?: number; // current
   valuationMultiples?: ValuationMultiples;
   suggestedModel?: 'FCFF' | 'DDM' | 'HIGH_GROWTH';
+  syntheticRating?: string;
+  bottomUpBeta?: number;
   peerDetails?: { ticker: string; metrics: ValuationMultiples }[];
   historicalMetrics?: HistoricalMetric[];
   sectorStats?: SectorStats;
@@ -84,8 +86,42 @@ export interface DcfOutput {
   dcfDetails: {
     explicitPeriodPV: number;
     terminalValuePV: number;
-    projectedCashFlows: { year: number; freeCashFlow: number; presentValue: number }[];
+    projectedCashFlows: { year: number; freeCashFlow: number; presentValue: number; phase?: 1 | 2 }[];
+    dividendGrowthRate?: number; // DDM only; negative = payout > earnings (cut risk)
   };
+}
+
+export interface SECYearData {
+  year: string;
+  date: string;
+  metadata: Record<string, { label: string; desc: string }>;
+  // Dynamic XBRL tags from SEC EDGAR — values are always numbers for USD entries
+  [tag: string]: string | number | Record<string, { label: string; desc: string }>;
+}
+
+export interface SECFinancials {
+  ticker: string;
+  cik: string;
+  financials: SECYearData[];
+}
+
+export interface AiInputAdjustment {
+  value: number;
+  reasoning: string;
+  rawValue: number;
+  confidence: 'high' | 'medium' | 'low';
+}
+
+export interface ValuationAdjustments {
+  companyType: string;
+  cyclicality: 'high' | 'medium' | 'low';
+  moatStrength: 'strong' | 'moderate' | 'weak';
+  adjustments: {
+    revenueGrowth?: AiInputAdjustment;
+    targetOperatingMargin?: AiInputAdjustment;
+  };
+  overallConfidence: 'high' | 'medium' | 'low';
+  summary: string;
 }
 
 export interface AnalysisResult {
@@ -97,6 +133,7 @@ export interface AnalysisResult {
     taxRate: number;
     terminalGrowthRate: number;
     wacc: number;
+    equityRiskPremium: number;
   };
   aiReport?: string;
   narrative?: {
@@ -106,4 +143,5 @@ export interface AnalysisResult {
   };
   suggestedModel?: 'FCFF' | 'DDM' | 'HIGH_GROWTH';
   peerDetails?: { ticker: string; metrics: ValuationMultiples }[];
+  valuationAdjustments?: ValuationAdjustments;
 }

@@ -1,4 +1,4 @@
-import { AnalysisResult, StockFinancials, HistoryData, EventData } from '../types';
+import { AnalysisResult, StockFinancials, ValuationAdjustments, HistoryData, EventData, SECFinancials } from '../types';
 import { calculateIntrinsicValue, calculateWACC, calculateCostOfDebt } from '../utils/dcfEngine';
 
 // Environment handling:
@@ -18,7 +18,8 @@ const DEFAULT_INPUTS = {
   targetOperatingMargin: 0.25,
   taxRate: 0.21,
   terminalGrowthRate: 0.02,
-  wacc: 0.08
+  wacc: 0.08,
+  equityRiskPremium: 0.045,
 };
 
 /**
@@ -42,24 +43,37 @@ export const fetchStockAnalysis = async (ticker: string): Promise<AnalysisResult
 
     const backendData = await response.json();
     const financials = backendData.financials as StockFinancials;
-    
+    const valuationAdjustments = backendData.valuationAdjustments as ValuationAdjustments | undefined;
+
     // Initialize inputs based on fetched data
     const inputs = { ...DEFAULT_INPUTS };
-    
+
     if (financials.taxRate > 0 && financials.taxRate < 0.5) {
       inputs.taxRate = financials.taxRate;
     }
 
+    inputs.equityRiskPremium = financials.equityRiskPremium ?? 0.045;
     const syntheticCostOfDebt = calculateCostOfDebt(financials);
-    inputs.wacc = calculateWACC(financials, syntheticCostOfDebt);
+    inputs.wacc = calculateWACC(financials, syntheticCostOfDebt, inputs.equityRiskPremium);
 
-    const actualGrowth = financials.revenueGrowth || 0.05;
-    inputs.revenueGrowth = financials.suggestedModel === 'HIGH_GROWTH' 
-      ? Math.min(Math.max(actualGrowth, 0.10), 0.50)
-      : Math.min(Math.max(actualGrowth, 0.02), 0.15);
+    // Use AI-normalized inputs when available; fall back to mechanical rules.
+    const aiAdj = valuationAdjustments?.adjustments;
 
-    const actualMargin = financials.operatingMargin || 0.15;
-    inputs.targetOperatingMargin = actualMargin > 0 ? actualMargin : 0.10;
+    if (aiAdj?.revenueGrowth) {
+      inputs.revenueGrowth = aiAdj.revenueGrowth.value;
+    } else {
+      const actualGrowth = financials.revenueGrowth || 0.05;
+      inputs.revenueGrowth = financials.suggestedModel === 'HIGH_GROWTH'
+        ? Math.min(Math.max(actualGrowth, 0.10), 0.50)
+        : Math.min(Math.max(actualGrowth, 0.02), 0.15);
+    }
+
+    if (aiAdj?.targetOperatingMargin) {
+      inputs.targetOperatingMargin = aiAdj.targetOperatingMargin.value;
+    } else {
+      const actualMargin = financials.operatingMargin || 0.15;
+      inputs.targetOperatingMargin = actualMargin > 0 ? actualMargin : 0.10;
+    }
 
     const valuation = calculateIntrinsicValue(financials, inputs, financials.suggestedModel);
 
@@ -68,7 +82,8 @@ export const fetchStockAnalysis = async (ticker: string): Promise<AnalysisResult
       valuation,
       inputs,
       aiReport: backendData.aiReport,
-      narrative: backendData.narrative
+      narrative: backendData.narrative,
+      valuationAdjustments,
     };
 
   } catch (error) {
@@ -81,14 +96,14 @@ export const fetchStockAnalysis = async (ticker: string): Promise<AnalysisResult
  * 2. fetchStockHistory
  * Fetches historical prices and events based on a dynamic time horizon
  */
-export const fetchStockHistory = async (ticker: string, period: string = '1y', refresh: boolean = false): Promise<{ history: HistoryData[], events: EventData[] }> => {
+export const fetchStockHistory = async (ticker: string, period: string = '1y', refresh: boolean = false, signal?: AbortSignal): Promise<{ history: HistoryData[], events: EventData[] }> => {
   try {
-    // Correctly appends the ?period= parameter for the backend
     const refreshQuery = refresh ? '&refresh=true' : '';
     const base = getApiBase();
     const response = await fetch(`${base}/api/stock-history/${ticker}?period=${period}${refreshQuery}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
+      signal,
     });
 
     if (response.ok) {
@@ -108,33 +123,10 @@ export const fetchStockHistory = async (ticker: string, period: string = '1y', r
 };
 
 /**
- * 3. fetchStockEvents
- * Keeping for compatibility, though history likely carries this data now
- */
-export const fetchStockEvents = async (ticker: string): Promise<EventData[]> => {
-  try {
-    const base = getApiBase();
-    // Backend metrics endpoint replaces legacy events
-    const response = await fetch(`${base}/api/metrics/${ticker}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      return data.events || [];
-    }
-  } catch (error) {
-    console.warn('Backend events fetch failed', error);
-  }
-  return [];
-};
-
-/**
- * 4. fetchValuationFinancials
+ * 3. fetchValuationFinancials
  * Fetches full historical financials from SEC EDGAR via the backend.
  */
-export const fetchValuationFinancials = async (ticker: string): Promise<any> => {
+export const fetchValuationFinancials = async (ticker: string): Promise<SECFinancials | null> => {
   try {
     const base = getApiBase();
     const response = await fetch(`${base}/api/valuation/${ticker}`, {
@@ -143,7 +135,7 @@ export const fetchValuationFinancials = async (ticker: string): Promise<any> => 
     });
 
     if (response.ok) {
-      return await response.json();
+      return await response.json() as SECFinancials;
     }
     console.warn('SEC data not found');
     return null;
@@ -185,6 +177,7 @@ type PagedSearchResult = {
 
 const SEARCH_CACHE = new Map<string, { timestamp: number, data: PagedSearchResult | { ticker: string, name: string, exchange: string }[] }>();
 const SEARCH_CACHE_TTL_MS = 5 * 60 * 1000;
+const SEARCH_CACHE_MAX = 500;
 
 export const searchTickerPaged = async (
   query: string,
@@ -215,6 +208,10 @@ export const searchTickerPaged = async (
     const normalized: PagedSearchResult = Array.isArray(data)
       ? { results: data, total: data.length, offset, limit }
       : { results: data.results || [], total: data.total || 0, offset: data.offset || offset, limit: data.limit || limit };
+    if (SEARCH_CACHE.size >= SEARCH_CACHE_MAX) {
+      // Evict oldest entry (Map preserves insertion order)
+      SEARCH_CACHE.delete(SEARCH_CACHE.keys().next().value!);
+    }
     SEARCH_CACHE.set(key, { timestamp: now, data: normalized });
     return normalized;
   } catch (error) {

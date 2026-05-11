@@ -1,15 +1,31 @@
+import logging
 import os
 import json
 import re
 import ast
 import concurrent.futures
 import dotenv
-from google import genai  # <--- THIS IS THE NEW IMPORT
-from google.genai import types
+from google import genai
+
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 dotenv.load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
+
+def _safe_ticker(ticker: str) -> str:
+    """Defense-in-depth: strip and cap ticker length before embedding in prompts."""
+    return str(ticker).strip()[:10].upper()
+
+def _sanitize_headlines(headlines: list, max_items: int = 10, max_title_len: int = 200) -> list:
+    """Cap headline count and individual title length to limit prompt manipulation."""
+    result = []
+    for item in headlines[:max_items]:
+        safe = dict(item)
+        if safe.get("title"):
+            safe["title"] = str(safe["title"])[:max_title_len]
+        result.append(safe)
+    return result
 
 # Initialize the NEW client
 client = None
@@ -17,15 +33,17 @@ if api_key:
     try:
         client = genai.Client(api_key=api_key)
     except Exception as e:
-        print(f"Failed to initialize Gemini Client: {e}")
+        logger.error("Failed to initialize Gemini Client: %s", e)
 
 def get_competitors_from_ai(ticker, company_name):
-    current_model = 'gemini-2.0-flash'
-    
-    print(f"🤖 AI Service: Using model {current_model} for {ticker}...")
+    current_model = 'gemini-2.5-flash'
+    ticker = _safe_ticker(ticker)
+    company_name = str(company_name).strip()[:100]
+
+    logger.info("Getting competitors via AI for %s using %s", ticker, current_model)
 
     if not client:
-        print("❌ Gemini API Key missing or client not initialized.")
+        logger.error("Gemini client not initialized — API key missing")
         return []
 
     try:
@@ -46,7 +64,7 @@ def get_competitors_from_ai(ticker, company_name):
         text = re.sub(r"```", "", text)
         text = text.strip()
 
-        print(f"🤖 AI Response: {text}")
+        logger.debug("AI competitor response for %s: %s", ticker, text)
 
         # 2. Try Standard JSON Parse (Double Quotes)
         try:
@@ -56,23 +74,23 @@ def get_competitors_from_ai(ticker, company_name):
             try:
                 return ast.literal_eval(text)
             except Exception:
-                print(f"❌ Could not parse AI response: {text}")
+                logger.error("Could not parse AI competitor response for %s: %s", ticker, text)
                 return []
 
     except Exception as e:
-        print(f"❌ Primary AI Model ({current_model}) failed: {e}")
+        logger.error("AI model %s failed for %s: %s", current_model, ticker, e)
         return []
 
 def get_major_events_from_ai(ticker, news_data):
-    current_model = 'gemini-2.0-flash'
-    print(f"🤖 AI Service: Analyzing news for {ticker}...")
+    current_model = 'gemini-2.5-flash'
+    ticker = _safe_ticker(ticker)
+    logger.info("Analyzing news events for %s", ticker)
 
     if not client:
         return []
 
     try:
-        # Limit news data to avoid token limits
-        news_summary = json.dumps(news_data[:10]) 
+        news_summary = json.dumps(_sanitize_headlines(news_data)) 
         
         prompt = (
             f"Analyze the following news headlines for {ticker} and identify the top 5 most significant events. "
@@ -94,19 +112,18 @@ def get_major_events_from_ai(ticker, news_data):
 
         try:
             return json.loads(text)
-        except:
+        except Exception:
             return []
 
     except Exception as e:
-        print(f"❌ AI News Analysis failed: {e}")
+        logger.error("AI news analysis failed for %s: %s", ticker, e)
         return []
 
 def analyze_price_shock(ticker, date_str, percent_change, headlines, end_date_str=None):
-    """
-    Uses Gemini to identify which news headline explains a significant price move.
-    """
-    current_model = 'gemini-2.0-flash'
-    
+    current_model = 'gemini-2.5-flash'
+    ticker = _safe_ticker(ticker)
+    headlines = _sanitize_headlines(headlines)
+
     if not client:
         return {
             'headline': 'AI Unavailable',
@@ -118,7 +135,7 @@ def analyze_price_shock(ticker, date_str, percent_change, headlines, end_date_st
     if end_date_str:
         period_msg = f"from {date_str} to {end_date_str}"
         
-    print(f"🤖 AI Service: Analyzing price move for {ticker} {period_msg} ({percent_change}%)")
+    logger.info("Analyzing price move for %s %s (%.2f%%)", ticker, period_msg, percent_change)
 
     try:
         move_type = "jumped" if percent_change > 0 else "dropped"
@@ -161,11 +178,11 @@ def analyze_price_shock(ticker, date_str, percent_change, headlines, end_date_st
                 summary = 'No detailed AI summary available for this event'
                 data['summary'] = summary
                 
-            print(f"✅ Gemini Summary: {summary[:50]}...")
+            logger.info("Gemini summary for %s: %s...", ticker, summary[:50])
             return data
-            
+
         except json.JSONDecodeError:
-            print(f"⚠️ Gemini returned non-JSON: {text[:50]}...")
+            logger.warning("Gemini returned non-JSON for %s: %s...", ticker, text[:50])
             return {
                 'headline': 'AI Analysis',
                 'summary': text if text else 'No detailed AI summary available for this event',
@@ -173,25 +190,124 @@ def analyze_price_shock(ticker, date_str, percent_change, headlines, end_date_st
             }
 
     except Exception as e:
-        print(f"❌ AI Shock Analysis failed: {e}")
+        logger.error("AI shock analysis failed for %s: %s", ticker, e)
         return {
             'headline': 'AI Analysis Failed',
             'summary': 'No detailed AI summary available for this event',
             'sentiment': 'neutral'
         }
 
+def get_valuation_adjustments(ticker: str, financials_context: dict) -> dict | None:
+    """
+    Call Gemini to produce Damodaran-style normalized valuation inputs.
+
+    Returns a dict with companyType, cyclicality, moatStrength, adjustments
+    (revenueGrowth + targetOperatingMargin), overallConfidence, and summary.
+    Returns None on any failure so callers can fall back to mechanical rules.
+    """
+    current_model = 'gemini-2.5-flash'
+    ticker = _safe_ticker(ticker)
+
+    if not client:
+        logger.warning("Gemini client not initialized; skipping valuation adjustments for %s", ticker)
+        return None
+
+    raw_growth = financials_context.get('rawRevenueGrowth', 0.05)
+    raw_margin = financials_context.get('rawOperatingMargin', 0.15)
+
+    def _call_gemini():
+        context_str = json.dumps(financials_context)[:3000]
+        prompt = (
+            f"You are a senior equity analyst applying Damodaran's valuation framework to {ticker}.\n"
+            f"Company data: {context_str}\n\n"
+            f"Task:\n"
+            f"1. Classify the company. Choose companyType from: platform_semiconductor, cyclical_commodity, "
+            f"consumer_staple, platform_software, financial_services, capital_intensive_manufacturer, "
+            f"biotech, retail, telecom, or another concise label. "
+            f"Set cyclicality to 'high', 'medium', or 'low'. "
+            f"Set moatStrength to 'strong', 'moderate', or 'weak'.\n"
+            f"2. Assess whether the raw 3-year revenue CAGR of {raw_growth:.1%} is cyclically inflated, depressed, "
+            f"or representative. Provide a normalized 5-year forward growth rate and explain why "
+            f"(reference TAM, competitive dynamics, and cycle position). "
+            f"Keep value between 0.02 and 0.50.\n"
+            f"3. Assess whether the current operating margin of {raw_margin:.1%} is peak, trough, or mid-cycle. "
+            f"Provide a normalized target margin at the end of the DCF horizon and explain why "
+            f"(consider competition, pricing power, cost structure). "
+            f"Keep value between 0.01 and 0.60.\n"
+            f"4. Write a 1-sentence summary of the key normalization insight.\n\n"
+            f"Return ONLY this JSON structure (no markdown, no extra keys):\n"
+            f'{{"companyType":"...","cyclicality":"high|medium|low","moatStrength":"strong|moderate|weak",'
+            f'"adjustments":{{"revenueGrowth":{{"value":0.0,"reasoning":"<120 chars","confidence":"high|medium|low"}},'
+            f'"targetOperatingMargin":{{"value":0.0,"reasoning":"<120 chars","confidence":"high|medium|low"}}}},'
+            f'"overallConfidence":"high|medium|low","summary":"..."}}'
+        )
+        response = client.models.generate_content(model=current_model, contents=prompt)
+        return response.text
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(_call_gemini)
+            text = future.result(timeout=20)
+
+        text = re.sub(r"```json", "", text)
+        text = re.sub(r"```", "", text)
+        text = text.strip()
+
+        data = json.loads(text)
+
+        if 'adjustments' not in data:
+            logger.warning("AI valuation adjustments missing 'adjustments' key for %s", ticker)
+            return None
+
+        # Pin rawValue from the context we know — don't trust AI to echo it correctly.
+        adj = data['adjustments']
+        if 'revenueGrowth' in adj:
+            adj['revenueGrowth']['rawValue'] = raw_growth
+        if 'targetOperatingMargin' in adj:
+            adj['targetOperatingMargin']['rawValue'] = raw_margin
+
+        # Clamp AI values to safe ranges
+        if 'revenueGrowth' in adj:
+            adj['revenueGrowth']['value'] = max(0.02, min(0.50, float(adj['revenueGrowth']['value'])))
+        if 'targetOperatingMargin' in adj:
+            adj['targetOperatingMargin']['value'] = max(0.01, min(0.60, float(adj['targetOperatingMargin']['value'])))
+
+        logger.info(
+            "AI valuation adjustments for %s: type=%s growth=%.1f%%→%.1f%% margin=%.1f%%→%.1f%%",
+            ticker,
+            data.get('companyType', '?'),
+            raw_growth * 100,
+            adj.get('revenueGrowth', {}).get('value', raw_growth) * 100,
+            raw_margin * 100,
+            adj.get('targetOperatingMargin', {}).get('value', raw_margin) * 100,
+        )
+        return data
+
+    except concurrent.futures.TimeoutError:
+        logger.warning("AI valuation adjustments timed out for %s", ticker)
+        return None
+    except json.JSONDecodeError as e:
+        logger.error("Could not parse AI valuation adjustments for %s: %s", ticker, e)
+        return None
+    except Exception as e:
+        logger.error("AI valuation adjustments failed for %s: %s", ticker, e)
+        return None
+
+
 def generate_fundamental_analysis(ticker, financial_context):
-    current_model = 'gemini-2.0-flash'
-    print(f"🤖 AI Service: Analyzing fundamentals for {ticker}...")
-    
+    current_model = 'gemini-2.5-flash'
+    ticker = _safe_ticker(ticker)
+    logger.info("Analyzing fundamentals for %s", ticker)
+
     if not client:
         return {}
 
     def _call_gemini():
+        context_str = json.dumps(financial_context)[:8000]
         prompt = (
             f"You are a Senior Equity Research Analyst covering {ticker}. "
             f"Generate a professional research report analyzing the company's valuation, growth drivers, and risks. "
-            f"Data Context: {json.dumps(financial_context)}. "
+            f"Data Context: {context_str}. "
             f"Structure your response as a strict JSON object with these 4 keys: "
             f"1. 'companyDescription': A 1-2 sentence high-level summary of the business model and primary revenue streams. "
             f"2. 'valuationStory': A concise paragraph analyzing the current valuation. Compare metrics to historical averages or peers if implied. Avoid generic definitions. "
@@ -218,11 +334,11 @@ def generate_fundamental_analysis(ticker, financial_context):
         try:
             return json.loads(text)
         except json.JSONDecodeError:
-            print(f"❌ Could not parse AI response: {text}")
+            logger.error("Could not parse fundamental AI response for %s: %s", ticker, text)
             return {}
 
     except concurrent.futures.TimeoutError:
-        print(f"❌ AI Timeout: Fundamental analysis took too long for {ticker}")
+        logger.error("Fundamental analysis timed out for %s", ticker)
         return {
             "valuationStory": "AI Analysis Timed Out. Summary currently unavailable.",
             "companyDescription": f"{ticker} data available, but AI report generation timed out.",
@@ -230,5 +346,5 @@ def generate_fundamental_analysis(ticker, financial_context):
             "riskFactors": "• AI Service Timeout"
         }
     except Exception as e:
-        print(f"❌ AI Fundamental Analysis failed: {e}")
+        logger.error("AI fundamental analysis failed for %s: %s", ticker, e)
         return {}

@@ -8,6 +8,10 @@ export default defineConfig({
   build: {
     sourcemap: 'hidden',
   },
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
+  },
   plugins: [
     react({
       babel: {
