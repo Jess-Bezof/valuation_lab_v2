@@ -6,6 +6,7 @@ import ast
 import concurrent.futures
 import dotenv
 from google import genai
+from google.genai import types as genai_types
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,12 @@ def _sanitize_headlines(headlines: list, max_items: int = 10, max_title_len: int
             safe["title"] = str(safe["title"])[:max_title_len]
         result.append(safe)
     return result
+
+# temperature=0 makes all structured-JSON responses deterministic.
+# At non-zero temperature the model samples different tokens each call,
+# producing different numeric values for the same company — exactly the
+# instability the user reported for valuation adjustments.
+_DETERMINISTIC = genai_types.GenerateContentConfig(temperature=0.0)
 
 # Initialize the NEW client
 client = None
@@ -54,7 +61,7 @@ def get_competitors_from_ai(ticker, company_name):
         )
 
         response = client.models.generate_content(
-            model=current_model, contents=prompt
+            model=current_model, contents=prompt, config=_DETERMINISTIC
         )
         text = response.text
 
@@ -101,7 +108,7 @@ def get_major_events_from_ai(ticker, news_data):
         )
 
         response = client.models.generate_content(
-            model=current_model, contents=prompt
+            model=current_model, contents=prompt, config=_DETERMINISTIC
         )
         text = response.text
 
@@ -157,10 +164,10 @@ def analyze_price_shock(ticker, date_str, percent_change, headlines, end_date_st
         )
 
         response = client.models.generate_content(
-            model=current_model, contents=prompt
+            model=current_model, contents=prompt, config=_DETERMINISTIC
         )
         text = response.text
-        
+
         # Strip accidental whitespace
         text = text.strip()
 
@@ -241,7 +248,9 @@ def get_valuation_adjustments(ticker: str, financials_context: dict) -> dict | N
             f'"targetOperatingMargin":{{"value":0.0,"reasoning":"<120 chars","confidence":"high|medium|low"}}}},'
             f'"overallConfidence":"high|medium|low","summary":"..."}}'
         )
-        response = client.models.generate_content(model=current_model, contents=prompt)
+        response = client.models.generate_content(
+            model=current_model, contents=prompt, config=_DETERMINISTIC
+        )
         return response.text
 
     try:
@@ -316,7 +325,7 @@ def generate_fundamental_analysis(ticker, financial_context):
             f"Strict JSON only. No markdown."
         )
         response = client.models.generate_content(
-            model=current_model, contents=prompt
+            model=current_model, contents=prompt, config=_DETERMINISTIC
         )
         return response.text
 
