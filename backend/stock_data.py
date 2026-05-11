@@ -165,27 +165,41 @@ def get_financial_value(df, keys, col_date=None) -> float | None:
                 continue
     return None
 
-def _yf_info_with_retry(stock, ticker: str, max_retries: int = 3) -> dict:
-    """Fetch yfinance .info with exponential backoff on 429 / rate-limit errors."""
+_RATE_LIMIT_HINTS = ('too many requests', 'rate limit', '429', 'empty info')
+
+def _is_rate_limit(exc: Exception) -> bool:
+    return any(h in str(exc).lower() for h in _RATE_LIMIT_HINTS)
+
+def _yf_with_retry(fn, label: str, max_retries: int = 4):
+    """
+    Call fn() with exponential backoff on rate-limit errors.
+    yfinance signals throttling in two ways:
+      • raises an exception containing "Too Many Requests" / "429"
+      • returns an empty dict {} silently (treated as a rate-limit symptom here)
+    """
     for attempt in range(max_retries):
         try:
-            info = stock.info
-            if not info:
-                raise ValueError("Empty info returned")
-            return info
+            result = fn()
+            # An empty dict {} is yfinance's silent rate-limit signal for .info;
+            # a non-empty DataFrame (history) is valid even when small, so we
+            # only treat empty-dict specifically as a rate-limit symptom.
+            if result is None or (isinstance(result, dict) and not result):
+                raise Exception("too many requests: empty response from yfinance")
+            return result
         except Exception as e:
-            err = str(e).lower()
-            is_rate_limit = any(k in err for k in ('too many requests', 'rate limit', '429'))
-            if is_rate_limit and attempt < max_retries - 1:
-                delay = 2 ** (attempt + 1)   # 2s → 4s → 8s
+            if _is_rate_limit(e) and attempt < max_retries - 1:
+                delay = 2 ** (attempt + 1)   # 2 → 4 → 8 → 16 s
                 logger.warning(
                     "yfinance rate-limited for %s — retrying in %ds (attempt %d/%d)",
-                    ticker, delay, attempt + 1, max_retries,
+                    label, delay, attempt + 1, max_retries,
                 )
                 time.sleep(delay)
             else:
                 raise
-    return {}   # unreachable; satisfies type checker
+
+
+def _yf_info_with_retry(stock, ticker: str) -> dict:
+    return _yf_with_retry(lambda: stock.info, ticker)
 
 
 def get_real_data(ticker: str):
@@ -715,16 +729,14 @@ def get_stock_history(ticker: str, period="1y"):
     
     try:
         logger.info("Fetching %s history for %s", period, ticker)
-        stock = yf.Ticker(ticker) 
-        # Instead of:
-        # stock = yf.Ticker(ticker, session=yf_session)
-        
-        # Optimization: Enforce 1d interval to keep payload predictable.
-        # Enforce 'auto_adjust=True' to ensure Close prices are adjusted for splits.
-        history = stock.history(period=period, interval="1d", auto_adjust=True)
-        
-        # FIX: Check if history is None or empty properly
-        if history is None or history.empty:
+        stock = yf.Ticker(ticker)
+
+        history = _yf_with_retry(
+            lambda: stock.history(period=period, interval="1d", auto_adjust=True),
+            label=f"{ticker}/history",
+        )
+
+        if history is None or (hasattr(history, 'empty') and history.empty):
             logger.warning("No history data returned for %s", ticker)
             return {"history": [], "events": []}
             
