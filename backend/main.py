@@ -490,11 +490,30 @@ app.add_middleware(
 def health_check():
     return {"status": "ok", "message": "Stock Analyzer API is running with SEC Engine"}
 
-# In-Memory Cache for Analysis
-# Key: Ticker, Value: { "timestamp": time.time(), "data": ... }
-ANALYSIS_CACHE = {}
-ANALYSIS_CACHE_TTL = 1800
+# Analysis cache — persisted to disk so Render cold-starts don't flush it.
+# TTL is 6 h in production: cloud IPs get throttled by yfinance on every restart,
+# so we cache aggressively to avoid hammering the upstream API.
+ANALYSIS_CACHE_FILE = "analysis_cache.json"
+ANALYSIS_CACHE_TTL = 21600   # 6 hours
 ANALYSIS_CACHE_MAX = 100
+
+def _load_analysis_cache() -> dict:
+    if not os.path.exists(ANALYSIS_CACHE_FILE):
+        return {}
+    try:
+        with open(ANALYSIS_CACHE_FILE, 'r') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def _save_analysis_cache() -> None:
+    try:
+        with open(ANALYSIS_CACHE_FILE, 'w') as f:
+            json.dump(ANALYSIS_CACHE, f)
+    except Exception as e:
+        logger.error("Error saving analysis cache: %s", e)
+
+ANALYSIS_CACHE: dict = _load_analysis_cache()
 
 def _evict_cache_if_full(cache: dict, max_size: int) -> None:
     """Drop the oldest half of entries when the cache is at capacity."""
@@ -551,6 +570,7 @@ def analyze_stock(ticker: str):
             "timestamp": current_time,
             "data": result
         }
+        _save_analysis_cache()
 
         logger.info("Caching fundamental analysis for %s", ticker_key)
         return result

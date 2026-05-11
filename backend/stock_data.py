@@ -165,16 +165,37 @@ def get_financial_value(df, keys, col_date=None) -> float | None:
                 continue
     return None
 
+def _yf_info_with_retry(stock, ticker: str, max_retries: int = 3) -> dict:
+    """Fetch yfinance .info with exponential backoff on 429 / rate-limit errors."""
+    for attempt in range(max_retries):
+        try:
+            info = stock.info
+            if not info:
+                raise ValueError("Empty info returned")
+            return info
+        except Exception as e:
+            err = str(e).lower()
+            is_rate_limit = any(k in err for k in ('too many requests', 'rate limit', '429'))
+            if is_rate_limit and attempt < max_retries - 1:
+                delay = 2 ** (attempt + 1)   # 2s → 4s → 8s
+                logger.warning(
+                    "yfinance rate-limited for %s — retrying in %ds (attempt %d/%d)",
+                    ticker, delay, attempt + 1, max_retries,
+                )
+                time.sleep(delay)
+            else:
+                raise
+    return {}   # unreachable; satisfies type checker
+
+
 def get_real_data(ticker: str):
     logger.info("Starting fetch for %s", ticker)
-    
+
     # 1. CORE DATA (Priority 1)
     # We must have basic info and financials to proceed.
     try:
         stock = yf.Ticker(ticker)
-        info = stock.info
-        if not info:
-            raise ValueError("No info found")
+        info = _yf_info_with_retry(stock, ticker)
         logger.info("Basic info fetched for %s — sector: %s", ticker, info.get('sector', 'Unknown'))
     except Exception as e:
         logger.error("Basic info fetch failed for %s: %s", ticker, e)
