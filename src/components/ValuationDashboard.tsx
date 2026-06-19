@@ -19,7 +19,7 @@ import {
   CASH_FLOW_PATH_INFO,
   getCashFlowPathStatus,
 } from '../utils/cashFlowPath';
-import { fmtCompact, fmtPrice, fmtB, fmtPct } from '../lib/formatters';
+import { fmtCompact, fmtPrice, fmtB } from '../lib/formatters';
 
 type ScenarioKey = 'bear' | 'base' | 'bull';
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, BookOpen, TrendingUp, FileText, Activity, BarChart2, SlidersHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, BookOpen, TrendingUp, FileText, Activity, BarChart2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { APP_GUIDE_SECTIONS, APP_GUIDE_TAGLINE, APP_GUIDE_TITLE } from '../content/appGuide';
 
 interface AppGuideModalProps {
