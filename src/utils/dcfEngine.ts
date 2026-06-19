@@ -63,6 +63,7 @@ export const calculateIntrinsicValue = (
     terminalGrowthRate: number;
     wacc?: number;
     equityRiskPremium?: number;
+    roic?: number;
   },
   modelType: 'FCFF' | 'DDM' | 'HIGH_GROWTH' = 'FCFF'
 ): DcfOutput => {
@@ -164,7 +165,7 @@ export const calculateIntrinsicValue = (
       const operatingIncome = currentRevenue * interpolatedMargin;
       const ebitAfterTax = operatingIncome * (1 - inputs.taxRate);
 
-      const roic = financials.roic && financials.roic !== 0 ? financials.roic : 0.15;
+      const roic = (inputs.roic ?? financials.roic) || 0.15;
       const reinvestmentRate = Math.max(yearGrowth / roic, 0);
       const fcf = ebitAfterTax * (1 - reinvestmentRate);
 

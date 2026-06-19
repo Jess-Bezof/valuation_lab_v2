@@ -221,6 +221,7 @@ def get_valuation_adjustments(ticker: str, financials_context: dict) -> dict | N
 
     raw_growth = financials_context.get('rawRevenueGrowth', 0.05)
     raw_margin = financials_context.get('rawOperatingMargin', 0.15)
+    raw_roic   = financials_context.get('roic', 0.15)
 
     def _call_gemini():
         context_str = json.dumps(financials_context)[:3000]
@@ -241,11 +242,19 @@ def get_valuation_adjustments(ticker: str, financials_context: dict) -> dict | N
             f"Provide a normalized target margin at the end of the DCF horizon and explain why "
             f"(consider competition, pricing power, cost structure). "
             f"Keep value between 0.01 and 0.60.\n"
-            f"4. Write a 1-sentence summary of the key normalization insight.\n\n"
+            f"4. Estimate the company's forward incremental ROIC — the return earned on each new dollar invested "
+            f"to fund future growth. The historical accounting ROIC is {raw_roic:.1%}. "
+            f"For asset-light businesses (software, platforms, marketplaces) incremental ROIC is typically "
+            f"much higher than accounting ROIC (0.40–1.50). For capital-intensive businesses "
+            f"(manufacturers, utilities, miners) it may be close to or below accounting ROIC (0.05–0.20). "
+            f"Provide a normalized incremental ROIC and explain why (consider business model, capex intensity, "
+            f"pricing power, and network effects). Keep value between 0.05 and 2.00.\n"
+            f"5. Write a 1-sentence summary of the key normalization insight.\n\n"
             f"Return ONLY this JSON structure (no markdown, no extra keys):\n"
             f'{{"companyType":"...","cyclicality":"high|medium|low","moatStrength":"strong|moderate|weak",'
             f'"adjustments":{{"revenueGrowth":{{"value":0.0,"reasoning":"<120 chars","confidence":"high|medium|low"}},'
-            f'"targetOperatingMargin":{{"value":0.0,"reasoning":"<120 chars","confidence":"high|medium|low"}}}},'
+            f'"targetOperatingMargin":{{"value":0.0,"reasoning":"<120 chars","confidence":"high|medium|low"}},'
+            f'"roic":{{"value":0.0,"reasoning":"<120 chars","confidence":"high|medium|low"}}}},'
             f'"overallConfidence":"high|medium|low","summary":"..."}}'
         )
         response = client.models.generate_content(
@@ -274,21 +283,27 @@ def get_valuation_adjustments(ticker: str, financials_context: dict) -> dict | N
             adj['revenueGrowth']['rawValue'] = raw_growth
         if 'targetOperatingMargin' in adj:
             adj['targetOperatingMargin']['rawValue'] = raw_margin
+        if 'roic' in adj:
+            adj['roic']['rawValue'] = raw_roic
 
         # Clamp AI values to safe ranges
         if 'revenueGrowth' in adj:
             adj['revenueGrowth']['value'] = max(0.02, min(0.50, float(adj['revenueGrowth']['value'])))
         if 'targetOperatingMargin' in adj:
             adj['targetOperatingMargin']['value'] = max(0.01, min(0.60, float(adj['targetOperatingMargin']['value'])))
+        if 'roic' in adj:
+            adj['roic']['value'] = max(0.05, min(2.00, float(adj['roic']['value'])))
 
         logger.info(
-            "AI valuation adjustments for %s: type=%s growth=%.1f%%→%.1f%% margin=%.1f%%→%.1f%%",
+            "AI valuation adjustments for %s: type=%s growth=%.1f%%→%.1f%% margin=%.1f%%→%.1f%% roic=%.1f%%→%.1f%%",
             ticker,
             data.get('companyType', '?'),
             raw_growth * 100,
             adj.get('revenueGrowth', {}).get('value', raw_growth) * 100,
             raw_margin * 100,
             adj.get('targetOperatingMargin', {}).get('value', raw_margin) * 100,
+            raw_roic * 100,
+            adj.get('roic', {}).get('value', raw_roic) * 100,
         )
         return data
 

@@ -1,8 +1,30 @@
 import React from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  CartesianGrid, Legend, Cell, ReferenceArea, ReferenceLine,
+  CartesianGrid, Legend, Cell, ReferenceArea, Customized,
 } from 'recharts';
+import { fmtM, fmtB } from '../lib/formatters';
+
+// Draws a dashed vertical line exactly at the boundary between Year 5 and Year 6
+const PhaseDivider = ({ xAxisMap, offset }: any) => {
+  const xAxis = xAxisMap?.[0];
+  if (!xAxis?.scale) return null;
+  const bw: number = xAxis.scale.bandwidth?.() ?? 0;
+  const x: number = xAxis.scale('Year 5') + bw;
+  const top: number = offset.top;
+  const bottom: number = offset.top + offset.height;
+  return (
+    <g>
+      <line
+        x1={x} y1={top} x2={x} y2={bottom}
+        stroke="#334155" strokeDasharray="5 4" strokeWidth={1}
+      />
+      <text x={x + 5} y={top - 5} fill="#475569" fontSize={10} dominantBaseline="auto">
+        ← Growth  |  Transition →
+      </text>
+    </g>
+  );
+};
 
 interface DCFChartProps {
   dcfDetails: {
@@ -65,7 +87,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           <span style={{ color: entry.color, fontSize: '12px' }}>{entry.name}</span>
           <span style={{ color: '#e2e8f0', fontFamily: 'monospace', fontSize: '12px' }}>
             {entry.value != null
-              ? `${entry.value < 0 ? '-' : ''}$${Math.abs(entry.value).toFixed(0)}M`
+              ? `${entry.value < 0 ? '-' : ''}${fmtM(entry.value)}`
               : '—'}
           </span>
         </div>
@@ -118,12 +140,7 @@ const DCFChart: React.FC<DCFChartProps> = ({ dcfDetails }) => {
               <>
                 <ReferenceArea x1="Year 1" x2="Year 5" fill="#10b981" fillOpacity={0.05} />
                 <ReferenceArea x1="Year 6" x2="Year 10" fill="#3b82f6" fillOpacity={0.05} />
-                <ReferenceLine
-                  x="Year 6"
-                  stroke="#334155"
-                  strokeDasharray="5 4"
-                  label={{ value: '← Growth  |  Transition →', position: 'top', fill: '#475569', fontSize: 10 }}
-                />
+                <Customized component={PhaseDivider} />
               </>
             )}
 
@@ -133,12 +150,12 @@ const DCFChart: React.FC<DCFChartProps> = ({ dcfDetails }) => {
               fontSize={12}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v) => `$${(v / 1000).toFixed(1)}B`}
+              tickFormatter={(v) => fmtB(v)}
             />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
             <Legend wrapperStyle={{ paddingTop: '20px' }} />
 
-            <Bar dataKey="FCF" name="Free Cash Flow" radius={[4, 4, 0, 0]} barSize={30}>
+            <Bar dataKey="FCF" name="Free Cash Flow" fill={PHASE_META[1].color} radius={[4, 4, 0, 0]} barSize={30}>
               {chartData.map((entry, i) => (
                 <Cell
                   key={`fcf-${i}`}
@@ -146,7 +163,7 @@ const DCFChart: React.FC<DCFChartProps> = ({ dcfDetails }) => {
                 />
               ))}
             </Bar>
-            <Bar dataKey="PV" name="Present Value" radius={[4, 4, 0, 0]} barSize={30}>
+            <Bar dataKey="PV" name="Present Value" fill={PHASE_META[1].pvColor} radius={[4, 4, 0, 0]} barSize={30}>
               {chartData.map((entry, i) => (
                 <Cell
                   key={`pv-${i}`}
@@ -176,8 +193,8 @@ const DCFChart: React.FC<DCFChartProps> = ({ dcfDetails }) => {
           </div>
         </div>
         <div className="flex justify-between text-xs text-slate-500 mt-2 px-1">
-          <div>PV of Cash Flows: <span className="text-emerald-400">${(dcfDetails.explicitPeriodPV / 1000).toFixed(1)}B</span></div>
-          <div>PV of Terminal Value: <span className="text-blue-400">${(dcfDetails.terminalValuePV / 1000).toFixed(1)}B</span></div>
+          <div>PV of Cash Flows: <span className="text-emerald-400">{fmtB(dcfDetails.explicitPeriodPV)}</span></div>
+          <div>PV of Terminal Value: <span className="text-blue-400">{fmtB(dcfDetails.terminalValuePV)}</span></div>
         </div>
       </div>
     </div>

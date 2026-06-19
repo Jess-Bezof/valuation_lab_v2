@@ -20,74 +20,197 @@ const DEFAULT_INPUTS = {
   terminalGrowthRate: 0.02,
   wacc: 0.08,
   equityRiskPremium: 0.045,
+  roic: 0.15,
+};
+
+/** Per-attempt timeout for /api/analyze (cold start + yfinance + AI). */
+const ANALYZE_TIMEOUT_MS = 180_000;
+const HEALTH_ATTEMPT_TIMEOUT_MS = 15_000;
+const WARMUP_INTERVAL_MS = 4_000;
+const WARMUP_MAX_ATTEMPTS = 30;
+const ANALYZE_MAX_RETRIES = 2;
+
+let backendReady = false;
+
+export type FetchStatusCallback = (message: string) => void;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export const isFetchTimeoutError = (error: unknown): boolean => {
+  if (error instanceof DOMException) {
+    return error.name === 'TimeoutError' || error.name === 'AbortError';
+  }
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    return msg.includes('signal timed out') || msg.includes('aborted');
+  }
+  return false;
+};
+
+/** Reset warm-up cache (e.g. after explicit backend URL change in dev). */
+export const resetBackendReady = () => {
+  backendReady = false;
+};
+
+/**
+ * Ping /health until the backend responds. Handles Render cold starts.
+ */
+export const warmUpBackend = async (onStatus?: FetchStatusCallback): Promise<void> => {
+  if (backendReady) return;
+
+  const base = getApiBase();
+  onStatus?.('Starting server…');
+
+  for (let attempt = 1; attempt <= WARMUP_MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(`${base}/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(HEALTH_ATTEMPT_TIMEOUT_MS),
+      });
+      if (response.ok) {
+        backendReady = true;
+        onStatus?.('Server ready — loading analysis…');
+        return;
+      }
+    } catch {
+      // Render may still be spinning up
+    }
+
+    if (attempt < WARMUP_MAX_ATTEMPTS) {
+      onStatus?.(`Starting server… (${attempt}/${WARMUP_MAX_ATTEMPTS})`);
+      await sleep(WARMUP_INTERVAL_MS);
+    }
+  }
+
+  throw new Error(
+    'Could not reach the analysis server. It may still be waking up — please wait a moment and try again.'
+  );
+};
+
+const buildAnalysisResult = (
+  backendData: {
+    financials: StockFinancials;
+    aiReport?: string;
+    narrative?: AnalysisResult['narrative'];
+    valuationAdjustments?: ValuationAdjustments;
+  }
+): AnalysisResult => {
+  const financials = backendData.financials;
+  const valuationAdjustments = backendData.valuationAdjustments;
+
+  const inputs = { ...DEFAULT_INPUTS };
+
+  if (financials.taxRate > 0 && financials.taxRate < 0.5) {
+    inputs.taxRate = financials.taxRate;
+  }
+
+  inputs.equityRiskPremium = financials.equityRiskPremium ?? 0.045;
+  const syntheticCostOfDebt = calculateCostOfDebt(financials);
+  inputs.wacc = calculateWACC(financials, syntheticCostOfDebt, inputs.equityRiskPremium);
+
+  const aiAdj = valuationAdjustments?.adjustments;
+
+  if (aiAdj?.revenueGrowth) {
+    inputs.revenueGrowth = aiAdj.revenueGrowth.value;
+  } else {
+    const actualGrowth = financials.revenueGrowth || 0.05;
+    inputs.revenueGrowth = financials.suggestedModel === 'HIGH_GROWTH'
+      ? Math.min(Math.max(actualGrowth, 0.10), 0.50)
+      : Math.min(Math.max(actualGrowth, 0.02), 0.15);
+  }
+
+  if (aiAdj?.targetOperatingMargin) {
+    inputs.targetOperatingMargin = aiAdj.targetOperatingMargin.value;
+  } else {
+    const actualMargin = financials.operatingMargin || 0.15;
+    inputs.targetOperatingMargin = actualMargin > 0 ? actualMargin : 0.10;
+  }
+
+  if (aiAdj?.roic) {
+    inputs.roic = aiAdj.roic.value;
+  } else {
+    inputs.roic = financials.roic > 0 ? financials.roic : 0.15;
+  }
+
+  const valuation = calculateIntrinsicValue(financials, inputs, financials.suggestedModel);
+
+  return {
+    financials,
+    valuation,
+    inputs,
+    aiReport: backendData.aiReport,
+    narrative: backendData.narrative,
+    valuationAdjustments,
+  };
+};
+
+const fetchAnalyzeOnce = async (ticker: string, refresh = false): Promise<AnalysisResult> => {
+  const base = getApiBase();
+  const url = refresh ? `${base}/api/analyze/${ticker}?refresh=true` : `${base}/api/analyze/${ticker}`;
+  const response = await fetch(url, {
+    method: 'GET',
+    signal: AbortSignal.timeout(ANALYZE_TIMEOUT_MS),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Backend error: ${response.status} ${response.statusText}`);
+  }
+
+  const backendData = await response.json();
+  return buildAnalysisResult(backendData);
+};
+
+export type FetchStockAnalysisOptions = {
+  onStatus?: FetchStatusCallback;
+  skipWarmup?: boolean;
+  refresh?: boolean;
 };
 
 /**
  * 1. fetchStockAnalysis
- * Fetches deep financials and performs initial DCF calculation
+ * Warms the backend (Render cold start), then fetches analysis with retries on timeout.
  */
-export const fetchStockAnalysis = async (ticker: string): Promise<AnalysisResult> => {
+export const fetchStockAnalysis = async (
+  ticker: string,
+  options?: FetchStockAnalysisOptions
+): Promise<AnalysisResult> => {
   const normalizedTicker = ticker.toUpperCase();
-  
+  const { onStatus, skipWarmup = false, refresh = false } = options ?? {};
+
   try {
-    const base = getApiBase();
-    const response = await fetch(`${base}/api/analyze/${normalizedTicker}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(90000) // Increased to 90s for deep AI analysis
-    });
-
-    if (!response.ok) {
-      throw new Error(`Backend error: ${response.status} ${response.statusText}`);
-    }
-
-    const backendData = await response.json();
-    const financials = backendData.financials as StockFinancials;
-    const valuationAdjustments = backendData.valuationAdjustments as ValuationAdjustments | undefined;
-
-    // Initialize inputs based on fetched data
-    const inputs = { ...DEFAULT_INPUTS };
-
-    if (financials.taxRate > 0 && financials.taxRate < 0.5) {
-      inputs.taxRate = financials.taxRate;
-    }
-
-    inputs.equityRiskPremium = financials.equityRiskPremium ?? 0.045;
-    const syntheticCostOfDebt = calculateCostOfDebt(financials);
-    inputs.wacc = calculateWACC(financials, syntheticCostOfDebt, inputs.equityRiskPremium);
-
-    // Use AI-normalized inputs when available; fall back to mechanical rules.
-    const aiAdj = valuationAdjustments?.adjustments;
-
-    if (aiAdj?.revenueGrowth) {
-      inputs.revenueGrowth = aiAdj.revenueGrowth.value;
+    if (!skipWarmup) {
+      await warmUpBackend(onStatus);
     } else {
-      const actualGrowth = financials.revenueGrowth || 0.05;
-      inputs.revenueGrowth = financials.suggestedModel === 'HIGH_GROWTH'
-        ? Math.min(Math.max(actualGrowth, 0.10), 0.50)
-        : Math.min(Math.max(actualGrowth, 0.02), 0.15);
+      onStatus?.('Loading analysis…');
     }
 
-    if (aiAdj?.targetOperatingMargin) {
-      inputs.targetOperatingMargin = aiAdj.targetOperatingMargin.value;
-    } else {
-      const actualMargin = financials.operatingMargin || 0.15;
-      inputs.targetOperatingMargin = actualMargin > 0 ? actualMargin : 0.10;
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= ANALYZE_MAX_RETRIES; attempt++) {
+      if (attempt > 0) {
+        onStatus?.(`Analysis took too long — retrying (${attempt}/${ANALYZE_MAX_RETRIES})…`);
+      } else {
+        onStatus?.('Running valuation and AI analysis…');
+      }
+
+      try {
+        return await fetchAnalyzeOnce(normalizedTicker, refresh);
+      } catch (error) {
+        lastError = error;
+        if (!isFetchTimeoutError(error) || attempt >= ANALYZE_MAX_RETRIES) {
+          throw error;
+        }
+        console.warn(`Analyze attempt ${attempt + 1} timed out for ${normalizedTicker}, retrying…`);
+      }
     }
 
-    const valuation = calculateIntrinsicValue(financials, inputs, financials.suggestedModel);
-
-    return {
-      financials,
-      valuation,
-      inputs,
-      aiReport: backendData.aiReport,
-      narrative: backendData.narrative,
-      valuationAdjustments,
-    };
-
+    throw lastError;
   } catch (error) {
     console.error('Failed to fetch stock analysis:', error);
+    if (isFetchTimeoutError(error)) {
+      throw new Error(
+        'Analysis timed out while the server was starting or processing data. Please try again — the second attempt is usually faster.'
+      );
+    }
     throw error;
   }
 };
@@ -102,7 +225,6 @@ export const fetchStockHistory = async (ticker: string, period: string = '1y', r
     const base = getApiBase();
     const response = await fetch(`${base}/api/stock-history/${ticker}?period=${period}${refreshQuery}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
       signal,
     });
 
@@ -131,7 +253,6 @@ export const fetchValuationFinancials = async (ticker: string): Promise<SECFinan
     const base = getApiBase();
     const response = await fetch(`${base}/api/valuation/${ticker}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
     });
 
     if (response.ok) {
@@ -155,7 +276,6 @@ export const searchTicker = async (query: string): Promise<{ ticker: string, nam
     const base = getApiBase();
     const response = await fetch(`${base}/api/search-ticker/${query}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
     });
 
     if (response.ok) {
@@ -198,8 +318,7 @@ export const searchTickerPaged = async (
     const url = `${base}/api/search-ticker/${encodeURIComponent(query)}?offset=${offset}&limit=${limit}`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      signal
+      signal,
     });
     if (!response.ok) {
       throw new Error(`Search failed: ${response.status}`);

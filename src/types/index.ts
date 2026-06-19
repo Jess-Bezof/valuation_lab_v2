@@ -119,6 +119,7 @@ export interface ValuationAdjustments {
   adjustments: {
     revenueGrowth?: AiInputAdjustment;
     targetOperatingMargin?: AiInputAdjustment;
+    roic?: AiInputAdjustment;
   };
   overallConfidence: 'high' | 'medium' | 'low';
   summary: string;
@@ -134,6 +135,7 @@ export interface AnalysisResult {
     terminalGrowthRate: number;
     wacc: number;
     equityRiskPremium: number;
+    roic: number;
   };
   aiReport?: string;
   narrative?: {

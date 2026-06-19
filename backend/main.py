@@ -1,6 +1,7 @@
 import logging
 import re
 import time
+from pathlib import Path
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from stock_data import get_real_data, get_metric_details, get_stock_history, search_ticker
@@ -13,8 +14,9 @@ from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
-# Load environment variables
-load_dotenv()
+# Load backend/.env and override stale machine-level env vars (e.g. production ALLOWED_ORIGINS).
+_BACKEND_DIR = Path(__file__).resolve().parent
+load_dotenv(_BACKEND_DIR / ".env", override=True)
 
 def _check_env_vars():
     if not os.getenv("GEMINI_API_KEY"):
@@ -25,6 +27,20 @@ def _check_env_vars():
 _check_env_vars()
 
 app = FastAPI()
+
+# CORS must be registered early so all routes (including /health) get correct preflight headers.
+_DEFAULT_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
+_raw_origins = os.getenv("ALLOWED_ORIGINS", _DEFAULT_ORIGINS)
+CORS_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+logger.info("CORS allow_origins: %s", CORS_ORIGINS)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"],
+    allow_headers=["*"],
+)
 
 # Ticker format: 1–5 letters, optionally followed by . or - and 1–2 letters (e.g. BRK.B)
 _TICKER_RE = re.compile(r'^[A-Z]{1,5}([.\-][A-Z]{1,2})?$')
@@ -473,19 +489,6 @@ def get_stock_news(symbol: str, history_data: list = None):
             
     return markers
 
-# Get the allowed origins from the environment variable
-# We split by comma so you can provide multiple URLs
-raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173")
-origins = [origin.strip() for origin in raw_origins.split(",")]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 @app.get("/")
 def health_check():
     return {"status": "ok", "message": "Stock Analyzer API is running with SEC Engine"}
@@ -523,12 +526,12 @@ def _evict_cache_if_full(cache: dict, max_size: int) -> None:
             del cache[k]
 
 @app.get("/api/analyze/{ticker}")
-def analyze_stock(ticker: str):
+def analyze_stock(ticker: str, refresh: bool = False):
     ticker_key = _validate_ticker(ticker)
     current_time = time.time()
     
-    # Check Cache
-    if ticker_key in ANALYSIS_CACHE:
+    # Check Cache (skip when caller explicitly requests a refresh)
+    if not refresh and ticker_key in ANALYSIS_CACHE:
         cached_entry = ANALYSIS_CACHE[ticker_key]
         if current_time - cached_entry['timestamp'] < ANALYSIS_CACHE_TTL:
             logger.info("Serving cached analysis for %s", ticker_key)
